@@ -14,3 +14,9 @@ From there, I decided to move the motor control to an arduino, and got better re
 I switched over to some metal gearmotors with encoders, and rewrote the arduino code to drive these motors.  Driving the motors was easy, and it wasn't very hard to get the Arduino Encoder library integrated in.  From there I integrated in the PID library, and spent a little time tuning the PID parameters so that performance was reasonable.
 
 At this point, I'm putting the code up on github in case it helps others in some way.
+
+current status
+==============
+
+After moving the motor control logic to a separate class, everything compiles.  I never see the velocity go above zero though.  Need to add in some debug to understand why its falling flat.  I'm wondering if the PID constants are zero or
+maybe that the PID compute function isn't being called correctly..?  Not sure yet.
