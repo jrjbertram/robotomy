@@ -5,17 +5,19 @@
 #include "MotorControl.h"
 
 MotorControl::MotorControl(
+      char * motor_name,
       int enable_pin,
       int pwm_resolution,
       int direction_A_pin,
       int direction_B_pin,
       int quadrature_A_pin,
       int quadrature_B_pin,
-      int pid_kp,
-      int pid_ki,
-      int pid_kd
+      double pid_kp,
+      double pid_ki,
+      double pid_kd
       )
-      : pinEn( enable_pin ),
+      : name( motor_name ),
+        pinEn( enable_pin ),
         pwmRes( pwm_resolution ),
         pinDirA( direction_A_pin ),
         pinDirB( direction_B_pin ),
@@ -27,7 +29,6 @@ MotorControl::MotorControl(
         encoder( quadrature_A_pin, quadrature_B_pin ),
         pid( &pidInput, &pidOutput, &pidSetpoint, pid_kp, pid_ki, pid_kd, DIRECT )
 {
- 
   // Set the hbridge control pins as outputs
   pinMode( pinEn,  OUTPUT);
   pinMode( pinDirA, OUTPUT);
@@ -37,10 +38,13 @@ MotorControl::MotorControl(
   desiredPos = 0;
   currentDirection = 0;
   
+  lastPos = -1;
+  lastVel = -1;
+  
   pidInput = 0;
   pidSetpoint = 0;
   pidOutput = 0;
-  
+
   // Turn the PID on
   pid.SetOutputLimits( -pwmRes, pwmRes );
   pid.SetMode(AUTOMATIC);  
@@ -108,45 +112,65 @@ int MotorControl::calculate_new_velocity()
 {
   int velocity; 
 
-  if( abs( desiredPos - currPos ) < 250 )
-  {
-    // Its not worth worrying about.
-    // Note that I put this test in here to eliminate oscillations of the motor below a hand-determined threshold
-  
-    velocity = 0;
-  }
-  else
-  { 
+//  long diff = desiredPos - currPos;
+//  int absdiff = abs( desiredPos - currPos );
+//  
+//  if( abs( desiredPos - currPos ) < 100 )
+//  {
+//    // Its not worth worrying about.
+//    // Note that I put this test in here to eliminate oscillations of the motor below a hand-determined threshold
+//    
+//    velocity = 0;
+//  }
+//  else
+//  { 
     // Convert our integer values into doubles
     pidInput = currPos;
     pidSetpoint = desiredPos;
     
+    
     // Perform the PID calculation
     pid.Compute();
-    
+
     // Convert the doulbe output back to an integer
     velocity = (int)pidOutput;
-  }
+//  }
   
   
   return velocity;
 }
 
+
+
 // Expected to be called each 'loop' iteration
 void MotorControl::manage_motor()
 {
   int velocity;
+
   
   update_position();
   
   velocity = calculate_new_velocity();
-   
-  Serial.print( "c=" );
-  Serial.print( currPos );
-  Serial.print( ", d=" );
-  Serial.print( desiredPos );
-  Serial.print( ", v=" );
-  Serial.println( velocity );
+
+  
+  if( lastPos != currPos || 
+      lastDes != desiredPos || 
+      lastVel != velocity )
+  {
+    Serial.print( name );
+    Serial.print( ": c=" );
+    Serial.print( currPos );
+    Serial.print( ", d=" );
+    Serial.print( desiredPos );
+    Serial.print( ", v=" );
+    Serial.print( velocity );
+    Serial.print( " " );
+    Serial.println( "" );
+    
+    lastPos = currPos;
+    lastDes = desiredPos;
+    lastVel = velocity;
+  }
 
   set_motor_speed( velocity );
 }

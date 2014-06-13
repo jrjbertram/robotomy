@@ -13,15 +13,16 @@ class MotorControl
   public:
   
     MotorControl( 
+      char * name,
       int enable_pin,
       int pwm_resolution,  // normally 0-255 for arduino
       int direction_A_pin,
       int direction_B_pin,
       int quadrature_A_pin,
       int quadrature_B_pin,
-      int pid_kp,
-      int pid_ki,
-      int pid_kd
+      double pid_kp,
+      double pid_ki,
+      double pid_kd
       );
 
     void stop();
@@ -32,6 +33,9 @@ class MotorControl
 
   private:
   
+    // Name
+    char * name;
+    
     // Assumes that we are controlling a DC motor that is driven with an h-bridge with 3 inputs:
     int pinEn;    // enable pin (can be PWM controlled)
     int pwmRes;   // resolution of PWM signal (normally 0-255 on Arduino, but can depend on the pin)
@@ -84,6 +88,10 @@ class MotorControl
     void set_motor_speed( int velocity );  // value of -pwmRes through pwmRes.  Speed + direction = velocity
     int calculate_new_velocity();
     
- 
+    // Debug / diagnostic variables
+    long lastPos;
+    long lastDes;
+    int lastVel;
 };
 #endif
+
