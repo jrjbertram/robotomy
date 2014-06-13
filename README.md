@@ -18,5 +18,8 @@ At this point, I'm putting the code up on github in case it helps others in some
 current status
 ==============
 
-After moving the motor control logic to a separate class, everything compiles.  I never see the velocity go above zero though.  Need to add in some debug to understand why its falling flat.  I'm wondering if the PID constants are zero or
-maybe that the PID compute function isn't being called correctly..?  Not sure yet.
+Have this driving both motors now.  Need to add in ability to invert the motor so I can get the left motor to turn opposite the right motor so that I will get forward motion instead of spinning.
+
+Also, my arduino due arrives tomorrow... I'll probably fiddle around wit that a little since it has sooooo many pins, all capable of PWM and interrupts!
+
+
