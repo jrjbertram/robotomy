@@ -2,19 +2,21 @@
 #include <Encoder.h>
 #include <PID_v1.h>
 
+#include "due_pwm.h"
 #include "MotorControl.h"
 
 MotorControl::MotorControl(
       char * motor_name,
       int enable_pin,
-      int pwm_resolution,
+      long pwm_resolution,
       int direction_A_pin,
       int direction_B_pin,
       int quadrature_A_pin,
       int quadrature_B_pin,
       double pid_kp,
       double pid_ki,
-      double pid_kd
+      double pid_kd,
+      int invert
       )
       : name( motor_name ),
         pinEn( enable_pin ),
@@ -44,6 +46,15 @@ MotorControl::MotorControl(
   pidInput = 0;
   pidSetpoint = 0;
   pidOutput = 0;
+  
+  if( invert == 1 )
+  {
+    inverted = -1;
+  }
+  else
+  {
+    inverted = 1;
+  }
 
   // Turn the PID on
   pid.SetOutputLimits( -pwmRes, pwmRes );
@@ -52,13 +63,54 @@ MotorControl::MotorControl(
 
 void MotorControl::set_desired_position( long newPosition )
 {
-  desiredPos = newPosition;
+  desiredPos = (newPosition * inverted);
 }
 
+void MotorControl::reset()
+{
+  desiredPos = currPos;
+}
+
+void MotorControl::set_kp( double new_kp )
+{
+  Kp = new_kp;
+  pid.SetTunings( Kp, Ki, Kd );
+  Serial.print( "Kp=" );
+  Serial.print( Kp );
+  Serial.print( ", Ki=" );
+  Serial.print( Ki );
+  Serial.print( ", Kd=" );
+  Serial.println( Kd );
+}
+
+void MotorControl::set_ki( double new_ki )
+{
+  Ki = new_ki;
+  pid.SetTunings( Kp, Ki, Kd );
+  Serial.print( "Kp=" );
+  Serial.print( Kp );
+  Serial.print( ", Ki=" );
+  Serial.print( Ki );
+  Serial.print( ", Kd=" );
+  Serial.println( Kd );
+}
+
+void MotorControl::set_kd( double new_kd )
+{
+  Kd = new_kd;
+  pid.SetTunings( Kp, Ki, Kd );
+  Serial.print( "Kp=" );
+  Serial.print( Kp );
+  Serial.print( ", Ki=" );
+  Serial.print( Ki );
+  Serial.print( ", Kd=" );
+  Serial.println( Kd );
+}
+    
 void MotorControl::stop()
 {
-  // analogWrite on a digital pin causes the signal to be PWM'd.
-  analogWrite( pinEn, 0); 
+  // set duty cycle to 0 (off)
+  pwm_write_duty( pinEn, 0); 
 }
 
 void MotorControl::forward()
@@ -77,14 +129,14 @@ void MotorControl::reverse()
   digitalWrite( pinDirB, HIGH );
 }
 
-void MotorControl::go( int velocity )
+void MotorControl::go( int speed )
 {
-  analogWrite( pinEn, velocity );
+  pwm_write_duty( pinEn, speed);
 }
 
 void MotorControl::update_position()
 {
-  currPos = encoder.read(); 
+  currPos = encoder.read() * inverted; 
 }
 
 void MotorControl::set_motor_speed( int velocity )

@@ -15,21 +15,31 @@ class MotorControl
     MotorControl( 
       char * name,
       int enable_pin,
-      int pwm_resolution,  // normally 0-255 for arduino
+      long pwm_resolution,  // normally 0-255 for arduino
       int direction_A_pin,
       int direction_B_pin,
       int quadrature_A_pin,
       int quadrature_B_pin,
       double pid_kp,
       double pid_ki,
-      double pid_kd
+      double pid_kd,
+      int invert
       );
 
     void stop();
+    void reset();
     
     void set_desired_position( long newPosition );
     
     void manage_motor(); // call this each 'loop' iteration
+    
+    void set_kp( double new_kp );
+    void set_ki( double new_ki );
+    void set_kd( double new_kd );
+    
+    double get_kp() { return Kp; }
+    double get_ki() { return Ki; }
+    double get_kd() { return Kd; }
 
   private:
   
@@ -38,9 +48,10 @@ class MotorControl
     
     // Assumes that we are controlling a DC motor that is driven with an h-bridge with 3 inputs:
     int pinEn;    // enable pin (can be PWM controlled)
-    int pwmRes;   // resolution of PWM signal (normally 0-255 on Arduino, but can depend on the pin)
+    long pwmRes;   // resolution of PWM signal (normally 0-255 on Arduino, but can depend on the pin)
     int pinDirA;  // direction input A
     int pinDirB;  // direction input B
+    int inverted; // should motor forward/reverse logic be inverted?
     
     // With the enable pin set to 0, we are free to change the direction.  The way this type of hbridge works
     // to go "forward", you set pinA to a 1, and pinB to a 0.  To go "backward", you set pinB to a 1 and pin A to a 0.
