@@ -20,3 +20,24 @@ current status
 
 Converted to Arduino Due.  The code has some Due-specific PWM library included, so will no longer work with an Uno as is.
 
+Next steps...?  
+
+* I also need to make a breakout board with connectors for all the new wiring
+* package up the motor controller circuit into an enclosure?
+* maybe solder up a new controller board with just two h-bridges instead of
+  the dual h-bridge one I have now.. its taking up too much space now.
+* hook up to raspberry pi for wireless access?
+   - I guess I will want to do this now and run the arduino from the
+     pi so that the pi figures out the motion plan.
+* wait for ethernet shield to arrive on Tues?
+
+* the other thing to figure out is the motion planning math for this 
+  robot.
+
+* sensors also arrive on Tues.. couple of infrared, a sonar, and a 9-dof 
+  orientation sensor
+
+* with the Due and its arm core, I may have enough horsepower to run the 
+  motion planning from the Due, and leave the rpi for vision processing.
+
+* may also get a pixy.. not sure it'll really help though beyond the rpi cam.
