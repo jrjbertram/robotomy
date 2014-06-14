@@ -18,8 +18,5 @@ At this point, I'm putting the code up on github in case it helps others in some
 current status
 ==============
 
-Have this driving both motors now.  Need to add in ability to invert the motor so I can get the left motor to turn opposite the right motor so that I will get forward motion instead of spinning.
-
-Also, my arduino due arrives tomorrow... I'll probably fiddle around wit that a little since it has sooooo many pins, all capable of PWM and interrupts!
-
+Converted to Arduino Due.  The code has some Due-specific PWM library included, so will no longer work with an Uno as is.
 
