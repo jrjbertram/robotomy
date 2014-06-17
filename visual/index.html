@@ -2,19 +2,24 @@
  <link rel="stylesheet" type="text/css" href="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraph.css" />
  <script type="text/javascript" src="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraphcore.js"></script>
 </head>
-<div id="box" class="jxgbox" style="width:500px; height:500px;"></div>
+<div id="box" class="jxgbox" style="width:1000px; height:600px;"></div>
 <script type="text/javascript">
 
 JXG.Options.showNavigation = false;
 JXG.Options.point.showInfobox = false;
 
-var board = JXG.JSXGraph.initBoard('box', {boundingbox: [-50, 50, 50, -50], axis:true, showCopyright:false, showNavigation: false});
+var board = JXG.JSXGraph.initBoard('box', {boundingbox: [-25, 50, 100, -25], axis:true, showCopyright:false, showNavigation: false, keepAspectRatio: true});
+var theta = board.create('slider', [[25, 10],[75, 10],[0,  .7,2*Math.PI]],{name:'angle'});
+var x     = board.create('slider', [[25,  0],[75,  0],[-25,60,100]],{name:'x'});
+var y     = board.create('slider', [[25,-10],[75,-10],[-25,20,25]],{name:'y'});
+
 var origin = board.create('point', [    0,    0 ], { visible: false } );
+
 
 function Robot( board, x, y, theta )
 {
   this.head   = board.create('point', [ 0,  10 ], { visible: false } );
-  this.tail   = board.create('point', [ 0, -10 ], { visible: false } );
+  this.tail   = board.create('point', [ 0, -30 ], { visible: false } );
   this.center = board.create('point', [ x,   y ], { visible: false } );
 
   var points =   // create a T shape
@@ -45,17 +50,22 @@ function Robot( board, x, y, theta )
   board.update()
 }
 
-var theta = board.create('slider', [[-25,-25],[25,-25],[0,  .7,2*Math.PI]],{name:'angle'});
-var x     = board.create('slider', [[-25,-30],[25,-30],[-25,10,25]],{name:'x'});
-var y     = board.create('slider', [[-25,-40],[25,-40],[-25,10,25]],{name:'y'});
-
 function xval() { return x.Value(); };
 function yval() { return y.Value(); };
 function tval() { return theta.Value(); };
 
+ox = 0;
+oy = 0;
+ot = 0;
 
-var orig = new Robot( board,    0,    0,    0 );
-var next = new Robot( board, xval, yval, tval );
+function oxval() { return ox; };
+function oyval() { return oy; };
+function otval() { return ot; };
+
+
+var orig = new Robot( board,     0,     0,     0 );
+var mobl = new Robot( board, oxval, oyval, otval );
+var next = new Robot( board,  xval,  yval,  tval );
 
 var bezier_points = [ orig.center , orig.head, next.tail , next.center ];
 
@@ -73,7 +83,7 @@ function bezier_x ( argi, argt, argw )
                3 * w[2].X() * ( 1 - t ) *  t        * t        +
                1 * w[3].X() * t         *  t        * t;
 
-  console.log( "bezier_x(" + i + "): t=" + t + ", w=" + w.map( function(pt){ return pt.X() } ) + " = " + xcoord );
+  //console.log( "bezier_x(" + i + "): t=" + t + ", w=" + w.map( function(pt){ return pt.X() } ) + " = " + xcoord );
 
   return xcoord;
 }
@@ -85,10 +95,37 @@ function bezier_y( i, t, w )
                3 * w[2].Y() * ( 1 - t ) *  t        * t        +
                1 * w[3].Y() * t         *  t        * t;
 
-  console.log( "bezier_y(" + i + "): t=" + t + ", w=" + w.map( function(pt){ return pt.Y() } ) + " = " + ycoord );
+  //console.log( "bezier_y(" + i + "): t=" + t + ", w=" + w.map( function(pt){ return pt.Y() } ) + " = " + ycoord );
 
   return ycoord;
 }
+
+function bezier_tangent_x( t, w )
+{
+  var xslope = -3 * w[0].X() * ( 1 - t ) * ( 1 - t )  +
+                3 * w[1].X() * ( 1 - t ) * ( 1 - t )  +
+               -6 * w[1].X() * ( 1 - t ) *  t         +
+               -3 * w[2].X() *   t       *  t         +
+                6 * w[2].X() * ( 1 - t ) *  t         +
+                3 * w[3].X() * t         *  t;
+
+  return xslope;
+
+}
+
+function bezier_tangent_y( t, w )
+{
+  var yslope = -3 * w[0].Y() * ( 1 - t ) * ( 1 - t )  +
+                3 * w[1].Y() * ( 1 - t ) * ( 1 - t )  +
+               -6 * w[1].Y() * ( 1 - t ) *  t         +
+               -3 * w[2].Y() *   t       *  t         +
+                6 * w[2].Y() * ( 1 - t ) *  t         +
+                3 * w[3].Y() * t         *  t;
+
+  return yslope;
+
+}
+
 
 //// Now, lets create a set of points along the bezier curve.  Let's pick 10 steps
 //for( var i=1; i<10; i++ )
@@ -107,7 +144,7 @@ function bezier_y( i, t, w )
 //}
 
 // Now let's brute-force the calculations  
-attrs={ visible: true, size: 1, fixed: true };
+attrs={ visible: true, size: 1, fixed: true, withLabel: false };
 
 board.create('point', 
 	 [ 
@@ -162,6 +199,34 @@ board.create('point',
 	   function() { return bezier_x( 8, .9, bezier_points ); }, 
 	   function() { return bezier_y( 8, .9, bezier_points ); }
 	 ], attrs );
+
+var i = 1;
+setInterval(
+  function(){ 
+       var t = i/10.0;
+       console.log( "anim for t=" + t );
+  
+       ox = bezier_x( 0, t, bezier_points );
+       oy = bezier_y( 0, t, bezier_points );
+
+       rx = bezier_tangent_x( t, bezier_points );
+       ry = bezier_tangent_y( t, bezier_points );
+
+       angle = Math.atan2( ry, rx );
+       ot = angle - Math.PI/2;
+       
+
+       i++; 
+       if( i > 10 ) 
+       { 
+         i = 1; 
+         ox = 0;
+         oy = 0;
+         ot = 0;
+       }
+       board.update();
+  
+     },1000);
 
 </script>
 

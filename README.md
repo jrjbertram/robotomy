@@ -123,5 +123,10 @@ Some examples:
       Nope that won't work as there will be plenty of paths that can't be
       met by a circle.  BUT, I think that any path can be met by following
       two circles who meet at a tangent?
+                - JRB update ... not so sure about that.  Switched over to
+                  bezier curves.
+
+    The bezier curves I'm using are smooth, but they have sharp angles. 
+    I'm okay with that for now I think.
 
 \     
