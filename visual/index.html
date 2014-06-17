@@ -1,0 +1,169 @@
+<head>
+ <link rel="stylesheet" type="text/css" href="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraph.css" />
+ <script type="text/javascript" src="http://jsxgraph.uni-bayreuth.de/distrib/jsxgraphcore.js"></script>
+</head>
+<div id="box" class="jxgbox" style="width:500px; height:500px;"></div>
+<script type="text/javascript">
+
+JXG.Options.showNavigation = false;
+JXG.Options.point.showInfobox = false;
+
+var board = JXG.JSXGraph.initBoard('box', {boundingbox: [-50, 50, 50, -50], axis:true, showCopyright:false, showNavigation: false});
+var origin = board.create('point', [    0,    0 ], { visible: false } );
+
+function Robot( board, x, y, theta )
+{
+  this.head   = board.create('point', [ 0,  10 ], { visible: false } );
+  this.tail   = board.create('point', [ 0, -10 ], { visible: false } );
+  this.center = board.create('point', [ x,   y ], { visible: false } );
+
+  var points =   // create a T shape
+    [ board.create('point', [-4, 2], { visible: false } ),
+      board.create('point', [-4,-2], { visible: false } ),
+      board.create('point', [-2,-2], { visible: false } ),
+      board.create('point', [-2,-6], { visible: false } ),
+      board.create('point', [ 2,-6], { visible: false } ),
+      board.create('point', [ 2,-2], { visible: false } ),
+      board.create('point', [ 4,-2], { visible: false } ),
+      board.create('point', [ 4, 2], { visible: false } )
+    ];
+
+  // create the outline of the object
+  this.shape = board.create( 'polygon', points );
+  this.arrow = board.create( 'arrow', [ this.center, this.head   ] );
+
+  // append the center point now that we've created the outline
+  // of the object so that the transformations will work on the
+  // center point as well
+  points.push( this.center );
+  points.push( this.head   );
+  points.push( this.tail  );
+
+  board.create( 'transform', [ theta, origin], {type: 'rotate'   } ).bindTo( points );
+  board.create( 'transform', [ x, y ],         {type: 'translate'} ).bindTo( points );
+
+  board.update()
+}
+
+var theta = board.create('slider', [[-25,-25],[25,-25],[0,  .7,2*Math.PI]],{name:'angle'});
+var x     = board.create('slider', [[-25,-30],[25,-30],[-25,10,25]],{name:'x'});
+var y     = board.create('slider', [[-25,-40],[25,-40],[-25,10,25]],{name:'y'});
+
+function xval() { return x.Value(); };
+function yval() { return y.Value(); };
+function tval() { return theta.Value(); };
+
+
+var orig = new Robot( board,    0,    0,    0 );
+var next = new Robot( board, xval, yval, tval );
+
+var bezier_points = [ orig.center , orig.head, next.tail , next.center ];
+
+board.create('curve', JXG.Math.Numerics.bezier( bezier_points ), 
+               {strokecolor:'blue', strokeOpacity:0.6, strokeWidth:5}); 
+
+function bezier_x ( argi, argt, argw )
+{
+  var i = argi
+  var t = argt
+  var w = argw
+
+  var xcoord = 1 * w[0].X() * ( 1 - t ) * ( 1 - t ) * ( 1 -t ) +
+               3 * w[1].X() * ( 1 - t ) * ( 1 - t ) * t        +
+               3 * w[2].X() * ( 1 - t ) *  t        * t        +
+               1 * w[3].X() * t         *  t        * t;
+
+  console.log( "bezier_x(" + i + "): t=" + t + ", w=" + w.map( function(pt){ return pt.X() } ) + " = " + xcoord );
+
+  return xcoord;
+}
+
+function bezier_y( i, t, w )
+{
+  var ycoord = 1 * w[0].Y() * ( 1 - t ) * ( 1 - t ) * ( 1 -t ) +
+               3 * w[1].Y() * ( 1 - t ) * ( 1 - t ) * t        +
+               3 * w[2].Y() * ( 1 - t ) *  t        * t        +
+               1 * w[3].Y() * t         *  t        * t;
+
+  console.log( "bezier_y(" + i + "): t=" + t + ", w=" + w.map( function(pt){ return pt.Y() } ) + " = " + ycoord );
+
+  return ycoord;
+}
+
+//// Now, lets create a set of points along the bezier curve.  Let's pick 10 steps
+//for( var i=1; i<10; i++ )
+//{
+//  // bezier curves range from t=0.0 to t=1.0.  Let's convert our step into a t.
+//  var t = 1.0 - (1.0 / i);
+//
+//  console.log( "t=" + t );
+//
+//  // Now let's brute-force the calculations  
+//  board.create('point', 
+//                 [ 
+//                   function() { var myi = i; var myt = t; return bezier_x( myi, myt, bezier_points ); }, 
+//                   function() { var myi = i; var myt = t; return bezier_y( myi, myt, bezier_points ); }
+//                 ], { visible: true } );
+//}
+
+// Now let's brute-force the calculations  
+attrs={ visible: true, size: 1, fixed: true };
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 0, .1, bezier_points ); }, 
+	   function() { return bezier_y( 0, .1, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 1, .2, bezier_points ); }, 
+	   function() { return bezier_y( 1, .2, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 2, .3, bezier_points ); }, 
+	   function() { return bezier_y( 2, .3, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 3, .4, bezier_points ); }, 
+	   function() { return bezier_y( 3, .4, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 4, .5, bezier_points ); }, 
+	   function() { return bezier_y( 4, .5, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 5, .6, bezier_points ); }, 
+	   function() { return bezier_y( 5, .6, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 6, .7, bezier_points ); }, 
+	   function() { return bezier_y( 6, .7, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 7, .8, bezier_points ); }, 
+	   function() { return bezier_y( 7, .8, bezier_points ); }
+	 ], attrs );
+
+board.create('point', 
+	 [ 
+	   function() { return bezier_x( 8, .9, bezier_points ); }, 
+	   function() { return bezier_y( 8, .9, bezier_points ); }
+	 ], attrs );
+
+</script>
+
+
+

@@ -41,3 +41,87 @@ Next steps...?
   motion planning from the Due, and leave the rpi for vision processing.
 
 * may also get a pixy.. not sure it'll really help though beyond the rpi cam.
+
+
+Motion Planning
+===============
+
+Notes on motion.  I have a two wheeled robot.. want to start being able to
+specify speeds of motors so that I can specify a trajetory.
+
+If the robot is turning in a circle where 'r' is the distance from the
+center of the turn to the inner wheel, and 'b' is the lenght between the
+two wheels, and theta is the angle that you turn, the the distance
+that each wheel travels is:
+
+d-inner = r * theta
+d-outer = ( r + b ) * theta = r * theta + b * theta
+
+So the difference between the two, d-outer - d-inner, is b* theta.
+
+    (d-outer - d-inner ) = b * theta
+
+Solving for theta, you get:
+
+    theta = ( d-outer - d-inner ) / b
+
+Once theta is known, r can be calulated as follows:
+
+     r = d-inner / theta
+
+So over any time, t, if I measure the distance the wheels traveled,
+I will get two measurements... either left or right will be shorter
+and will thus be d-inner.
+
+b will always be fixed for my robot, so I will always be able to 
+calculate all of the other variables.
+
+Some examples:
+
+  In time "t", the left motor traveled 3 inches and the right motor
+  travelled 3.5 inches.  Let's assume that the distance between wheels
+  is 8 inches.
+
+  In this example, d-inner is 3 inches, and d-outer is 3.5 inches, and
+  b is 8 inches.
+
+  To calculate theta (the angle), we perform the following calculation:
+
+    theta = ( d-outer - d-inner ) / b
+          = ( 3.5 inches - 3 inches ) / 8 inches
+          = .5 / 8
+          = .0625 radians  ( 3.58 degrees )
+
+    also, we can calculate the center of the radius of the circle the
+    robot is moving along.  it will always be aligned along the axis
+    between the two motors, and will either be left or right.
+
+    r = d-inner / theta
+      = 3 inches / .0625 radians
+      = 48 inches
+
+
+    We can also determine our new x, y and gamma (orientation angle) as
+    
+       x-new = x-old + r * cos( theta )
+       y-new = y-old + y * sin( theta )
+
+       gamma-new  =  gamma-old + ( 90 degrees - theta )
+                  =  gamma-old + ( pi / 2 - theta )
+
+
+
+     This should give us a pretty simple way to keep track of where we are.
+    
+     Now how about planning ahead?  What I'd like to do here is calculate
+     my desired velocities of the motors given a new desired position.
+
+     I think the way I need to do this is given the new position and 
+     orientation that is desired, what circle would I have to follow 
+     to get there?
+
+      Nope that won't work as there will be plenty of paths that can't be
+      met by a circle.  BUT, I think that any path can be met by following
+      two circles who meet at a tangent?
+
+\     
