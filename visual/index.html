@@ -8,30 +8,36 @@
 JXG.Options.showNavigation = false;
 JXG.Options.point.showInfobox = false;
 
+normpt={ visible: true, size: 1, fixed: true, withLabel: false };
+hidden={ visible: false };
+
 var board = JXG.JSXGraph.initBoard('box', {boundingbox: [-25, 50, 100, -25], axis:true, showCopyright:false, showNavigation: false, keepAspectRatio: true});
 var theta = board.create('slider', [[25, 10],[75, 10],[0,  .7,2*Math.PI]],{name:'angle'});
 var x     = board.create('slider', [[25,  0],[75,  0],[-25,60,100]],{name:'x'});
 var y     = board.create('slider', [[25,-10],[75,-10],[-25,20,25]],{name:'y'});
 
-var origin = board.create('point', [    0,    0 ], { visible: false } );
+var origin = board.create('point', [    0,    0 ], hidden );
 
 
 function Robot( board, x, y, theta )
 {
-  this.head   = board.create('point', [ 0,  10 ], { visible: false } );
-  this.tail   = board.create('point', [ 0, -30 ], { visible: false } );
-  this.center = board.create('point', [ x,   y ], { visible: false } );
+  this.head   = board.create('point', [ 10,  0 ], hidden );
+  this.tail   = board.create('point', [-30,  0 ], hidden );
+  this.center = board.create('point', [ x,   y ], hidden );
 
-  var points =   // create a T shape
-    [ board.create('point', [-4, 2], { visible: false } ),
-      board.create('point', [-4,-2], { visible: false } ),
-      board.create('point', [-2,-2], { visible: false } ),
-      board.create('point', [-2,-6], { visible: false } ),
-      board.create('point', [ 2,-6], { visible: false } ),
-      board.create('point', [ 2,-2], { visible: false } ),
-      board.create('point', [ 4,-2], { visible: false } ),
-      board.create('point', [ 4, 2], { visible: false } )
+  var points =   // create a T shape.. orient along X axis
+    [ board.create('point', [ 2,-4], hidden ),
+      board.create('point', [-2,-4], hidden ),
+      board.create('point', [-2,-2], hidden ),
+      board.create('point', [-6,-2], hidden ),
+      board.create('point', [-6, 2], hidden ),
+      board.create('point', [-2, 2], hidden ),
+      board.create('point', [-2, 4], hidden ),
+      board.create('point', [ 2, 4], hidden )
     ];
+
+  this.lft = board.create('point', [ 0,  3 ], normpt );
+  this.rht = board.create('point', [ 0, -3 ], normpt );
 
   // create the outline of the object
   this.shape = board.create( 'polygon', points );
@@ -43,11 +49,13 @@ function Robot( board, x, y, theta )
   points.push( this.center );
   points.push( this.head   );
   points.push( this.tail  );
+  points.push( this.lft );
+  points.push( this.rht );
 
   board.create( 'transform', [ theta, origin], {type: 'rotate'   } ).bindTo( points );
   board.create( 'transform', [ x, y ],         {type: 'translate'} ).bindTo( points );
 
-  board.update()
+  board.update();
 }
 
 function xval() { return x.Value(); };
@@ -144,80 +152,139 @@ function bezier_tangent_y( t, w )
 //}
 
 // Now let's brute-force the calculations  
-attrs={ visible: true, size: 1, fixed: true, withLabel: false };
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 0, .1, bezier_points ); }, 
 	   function() { return bezier_y( 0, .1, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 1, .2, bezier_points ); }, 
 	   function() { return bezier_y( 1, .2, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 2, .3, bezier_points ); }, 
 	   function() { return bezier_y( 2, .3, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 3, .4, bezier_points ); }, 
 	   function() { return bezier_y( 3, .4, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 4, .5, bezier_points ); }, 
 	   function() { return bezier_y( 4, .5, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 5, .6, bezier_points ); }, 
 	   function() { return bezier_y( 5, .6, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 6, .7, bezier_points ); }, 
 	   function() { return bezier_y( 6, .7, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 7, .8, bezier_points ); }, 
 	   function() { return bezier_y( 7, .8, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
 board.create('point', 
 	 [ 
 	   function() { return bezier_x( 8, .9, bezier_points ); }, 
 	   function() { return bezier_y( 8, .9, bezier_points ); }
-	 ], attrs );
+	 ], normpt );
 
-var i = 1;
+lftLastX=0;
+lftLastY=0;
+rhtLastX=0;
+rhtLastY=0;
+
+lftDist=0;
+rhtDist=0;
+
+lftLastDist=0;
+rhtLastDist=0;
+
+lftBaseX=-15;
+lftBaseY= 15;
+rhtBaseX=-10;
+rhtBaseY= 15;
+
+function lftLastXf() { return lftLastX; }
+function lftLastYf() { return lftLastY; }
+function rhtLastXf() { return rhtLastX; }
+function rhtLastYf() { return rhtLastY; }
+
+function lftBaseXf() { return lftBaseX; }
+function lftBaseYf() { return lftBaseY; }
+function rhtBaseXf() { return rhtBaseX; }
+function rhtBaseYf() { return rhtBaseY; }
+
+scale=10.0;
+
+function lftVectXf() { return lftBaseX; }
+function lftVectYf() { return lftBaseY + 1 + lftLastDist * 100; }
+function rhtVectXf() { return rhtBaseX; }
+function rhtVectYf() { return rhtBaseY + 1 + rhtLastDist * 100; }
+
+lftBase = board.create('point', [ lftBaseXf, lftBaseYf ], normpt );
+rhtBase = board.create('point', [ rhtBaseXf, rhtBaseYf ], normpt );
+
+lftVect = board.create('point', [ lftVectXf, lftVectYf ], normpt );
+rhtVect = board.create('point', [ rhtVectXf, rhtVectYf ], normpt );
+
+lftVel = board.create('arrow', [ lftBase, lftVect ] );
+rhtVel = board.create('arrow', [ rhtBase, rhtVect ] );
+
+lftLast = board.create('point', [ lftLastXf, lftLastYf ], normpt );
+rhtLast = board.create('point', [ rhtLastXf, rhtLastYf ], normpt );
+
+
+var i = 0;
 setInterval(
   function(){ 
-       var t = i/10.0;
-       console.log( "anim for t=" + t );
-  
-       ox = bezier_x( 0, t, bezier_points );
-       oy = bezier_y( 0, t, bezier_points );
-
-       rx = bezier_tangent_x( t, bezier_points );
-       ry = bezier_tangent_y( t, bezier_points );
-
-       angle = Math.atan2( ry, rx );
-       ot = angle - Math.PI/2;
-       
-
        i++; 
-       if( i > 10 ) 
+       if( i < 1000 )
+       {
+         var t = i/1000;
+         console.log( "anim for t=" + t );
+         
+         ox = bezier_x( 0, t, bezier_points );
+         oy = bezier_y( 0, t, bezier_points );
+
+         rx = bezier_tangent_x( t, bezier_points );
+         ry = bezier_tangent_y( t, bezier_points );
+
+         angle = Math.atan2( ry, rx );
+         ot = angle;
+       
+         lftLastDist=lftLast.Dist( mobl.lft );
+         rhtLastDist=rhtLast.Dist( mobl.rht );
+ 
+         lftDist+=lftLastDist;
+         rhtDist+=rhtLastDist;
+ 
+         lftLastX=mobl.lft.X()
+         lftLastY=mobl.lft.Y()
+         rhtLastX=mobl.rht.X()
+         rhtLastY=mobl.rht.Y()
+  
+          
+       }
+       else if( i > 1100 ) // delay a little at the end
        { 
          i = 1; 
          ox = 0;
@@ -226,7 +293,7 @@ setInterval(
        }
        board.update();
   
-     },1000);
+     },10);
 
 </script>
 
