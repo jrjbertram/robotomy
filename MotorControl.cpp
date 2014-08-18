@@ -136,7 +136,7 @@ void MotorControl::go( int speed )
 
 void MotorControl::update_position()
 {
-  currPos = encoder.read() * inverted; 
+  currPos = encoder.read(); 
 }
 
 void MotorControl::set_motor_speed( int velocity )

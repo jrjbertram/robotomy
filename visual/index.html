@@ -80,6 +80,12 @@ var bezier_points = [ orig.center , orig.head, next.tail , next.center ];
 board.create('curve', JXG.Math.Numerics.bezier( bezier_points ), 
                {strokecolor:'blue', strokeOpacity:0.6, strokeWidth:5}); 
 
+// 3rd degree bezier function is:
+//   pt = 1 * w0 * ( 1 - t )^3       +
+//        3 * w1 * ( 1 - t )^2 * t   +
+//        3 * w2 * ( 1 - t )   * t^2 +
+//        1 * w3 *               t^3
+
 function bezier_x ( argi, argt, argw )
 {
   var i = argi
@@ -108,8 +114,17 @@ function bezier_y( i, t, w )
   return ycoord;
 }
 
+// First derivative of 3rd degree bezier function is:
+//   pt = -3 w0 * ( 1 - t )^2        +
+//         3 w1 * ( 1 - t )^2        +
+//        -6 w1 * ( 1 - t )   * t    +
+//        -3 w2 *               t^2  +
+//         6 w2 * ( 1 - t)    * t    + 
+//         3 w3 *               t^2   
+
 function bezier_tangent_x( t, w )
 {
+
   var xslope = -3 * w[0].X() * ( 1 - t ) * ( 1 - t )  +
                 3 * w[1].X() * ( 1 - t ) * ( 1 - t )  +
                -6 * w[1].X() * ( 1 - t ) *  t         +
@@ -134,78 +149,27 @@ function bezier_tangent_y( t, w )
 
 }
 
+// Second derivative of 3rd degree bezier function is:
+//   pt = -3 w0 * ( 1 - t )^2        +
+//         3 w1 * ( 1 - t )^2        +
+//        -6 w1 * ( 1 - t )   * t    +
+//        -3 w2 *               t^2  +
+//         6 w2 * ( 1 - t)    * t    + 
+//         3 w3 *               t^2   
 
-//// Now, lets create a set of points along the bezier curve.  Let's pick 10 steps
-//for( var i=1; i<10; i++ )
-//{
-//  // bezier curves range from t=0.0 to t=1.0.  Let's convert our step into a t.
-//  var t = 1.0 - (1.0 / i);
-//
-//  console.log( "t=" + t );
-//
-//  // Now let's brute-force the calculations  
-//  board.create('point', 
-//                 [ 
-//                   function() { var myi = i; var myt = t; return bezier_x( myi, myt, bezier_points ); }, 
-//                   function() { var myi = i; var myt = t; return bezier_y( myi, myt, bezier_points ); }
-//                 ], { visible: true } );
-//}
+function bezier_curvature_x( t, w )
+{
+  var xslope = -3 * w[0].X() * ( 1 - t ) * ( 1 - t )  +
+                3 * w[1].X() * ( 1 - t ) * ( 1 - t )  +
+               -6 * w[1].X() * ( 1 - t ) *  t         +
+               -3 * w[2].X() *   t       *  t         +
+                6 * w[2].X() * ( 1 - t ) *  t         +
+                3 * w[3].X() * t         *  t;
 
-// Now let's brute-force the calculations  
+  return xslope;
 
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 0, .1, bezier_points ); }, 
-	   function() { return bezier_y( 0, .1, bezier_points ); }
-	 ], normpt );
+}
 
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 1, .2, bezier_points ); }, 
-	   function() { return bezier_y( 1, .2, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 2, .3, bezier_points ); }, 
-	   function() { return bezier_y( 2, .3, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 3, .4, bezier_points ); }, 
-	   function() { return bezier_y( 3, .4, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 4, .5, bezier_points ); }, 
-	   function() { return bezier_y( 4, .5, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 5, .6, bezier_points ); }, 
-	   function() { return bezier_y( 5, .6, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 6, .7, bezier_points ); }, 
-	   function() { return bezier_y( 6, .7, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 7, .8, bezier_points ); }, 
-	   function() { return bezier_y( 7, .8, bezier_points ); }
-	 ], normpt );
-
-board.create('point', 
-	 [ 
-	   function() { return bezier_x( 8, .9, bezier_points ); }, 
-	   function() { return bezier_y( 8, .9, bezier_points ); }
-	 ], normpt );
 
 lftLastX=0;
 lftLastY=0;
@@ -252,6 +216,14 @@ rhtVel = board.create('arrow', [ rhtBase, rhtVect ] );
 lftLast = board.create('point', [ lftLastXf, lftLastYf ], normpt );
 rhtLast = board.create('point', [ rhtLastXf, rhtLastYf ], normpt );
 
+function determinant( ax, ay, bx, by, qx, qy )
+{
+  // Calculate the determinant of the vectors (AB, AQ)
+
+  det = ( ( bx - ax ) * ( qy - ay ) ) - ( ( by - ay ) * ( qx - ax ) );
+
+  return det
+}
 
 var i = 0;
 setInterval(
@@ -270,9 +242,21 @@ setInterval(
 
          angle = Math.atan2( ry, rx );
          ot = angle;
-       
+
          lftLastDist=lftLast.Dist( mobl.lft );
          rhtLastDist=rhtLast.Dist( mobl.rht );
+         
+         lftDet = determinant( mobl.lft.X(), mobl.lft.Y(), mobl.rht.X(), mobl.rht.Y(), lftLastX, lftLastY )
+         if( lftDet > 0 )
+         {
+           lftLastDist *= -1;
+         }
+ 
+         rhtDet = determinant( mobl.lft.X(), mobl.lft.Y(), mobl.rht.X(), mobl.rht.Y(), rhtLastX, rhtLastY )
+         if( rhtDet > 0 )
+         {
+           rhtLastDist *= -1;
+         }
  
          lftDist+=lftLastDist;
          rhtDist+=rhtLastDist;
