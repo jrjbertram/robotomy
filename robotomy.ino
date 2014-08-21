@@ -252,7 +252,8 @@ void loop()
         stream.print( ", Kd=" );
         stream.println( kd );
       }
-      break;      case 'P':
+      break;      
+      case 'P':
       {
         double k = stream.parseFloat();
         lft.set_kp( k );
@@ -314,6 +315,15 @@ void loop()
   
   if( elapsed > 1000 )
   {
+    // Need to convert these to a distance measurement at some point.  Right now just using raw analog input value.
+    // Also eventually need these to gate any motor movement.  Should they cross below some threshold, I want them
+    // to trigger a "turn around and find new path" behavior.  i.e., we want to change our main loop here to be
+    //  (a) read sensors
+    //  (b) create motion "plan"
+    //  (c) execute any movement
+    //
+    // At this point, I'm pleased that the sensors are working and there are no obvious wiring problems.
+    
     int ir1In = analogRead( ir1 );
     int sonar1In = analogRead( sonar1 );
     
