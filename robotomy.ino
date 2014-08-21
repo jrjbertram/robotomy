@@ -13,6 +13,9 @@
 #include <Adafruit_CC3000_Server.h>
 #include <SPI.h>  // neede for some reason here too
 
+// Elapsed time measurement
+#include "elapsedMillis.h"
+
 
 // Pin mappings - these will eventually be the real map
 
@@ -66,19 +69,24 @@ int rhtEn = 7;
 //   - Since on the Due, pins 22-53 are digtal inputs that can support interrupts and they can't possibly interfere with a shield I might want
 //     to use, let's allocate the rest of our motor control signals to these pins reserving the remaining "standard" shield-compatible pins.
 
+// h-bridge direction pins
 int lftA  = 26; 
 int lftB  = 27;
 
 int rhtA  = 28;
 int rhtB  = 29;
 
-
+// encoder pins
 int lftQa = 22;
 int lftQb = 23;
 
 int rhtQa = 24;
 int rhtQb = 25;
 
+// On my analog pins, I have a Sharp IR distance sensor.  The analog value will be 3V when an object is 4" (10 cm) away, and 0.4V when an object
+// is 32" (80 cm) away.
+int ir1 = A0;
+int sonar1 = A1;
 
 
 
@@ -282,8 +290,11 @@ class MuxStream : public Stream {
   
 };
 
+elapsedMillis elapsed;
+
 void loop()
 {
+    
   char cmd = '\0';
   MuxStream stream;
 
@@ -294,7 +305,7 @@ void loop()
   if (client) {
     ClientStream clientStream = ClientStream( &client );
 
-    stream = MuxStream( &clientStream, &Serial );    
+    stream = MuxStream( &clientStream );    
   }
   else
   {
@@ -401,6 +412,18 @@ void loop()
   lft.manage_motor();
   rht.manage_motor();
   
+  if( elapsed > 1000 )
+  {
+    int ir1In = analogRead( ir1 );
+    int sonar1In = analogRead( sonar1 );
+    
+    stream.print( "IR=" );
+    stream.print( ir1In );
+    
+    stream.print( "  Sonar=" );
+    stream.println( sonar1In );
+    elapsed = 0;
+  }
     
 }
 
