@@ -5,6 +5,12 @@
 
 #include "MotorControl.h"
 
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303_U.h>
+#include <Adafruit_L3GD20_U.h>
+#include <Adafruit_9DOF.h>
+
 
 class Robot
 {
@@ -21,21 +27,34 @@ class Robot
     ROBOT_AUTO,  // fully autonomous mode -- look out!
   } RobotMode;
 
-  Robot( MotorControl & lft, MotorControl & rht);
+  Robot( 
+    MotorControl & lft, 
+    MotorControl & rht,
+    Adafruit_LSM303_Accel_Unified & accel,
+    Adafruit_LSM303_Mag_Unified   & mag,
+    Adafruit_L3GD20_Unified       & gyro,
+    Adafruit_9DOF                 & dof
+  );
   
   int setMode( RobotMode mode ) { _mode = mode; }
   
   int tick_occurred( Stream & stream );
   int reset();
+      
+  int autonomous_reset();
 
   private:
   RobotMode _mode;
   
   MotorControl _lft;
   MotorControl _rht;
-    
-  int autonomous_reset();
+
   int autonomous_tick_ocurred( Stream & stream );
+  
+  Adafruit_LSM303_Accel_Unified _accel;
+  Adafruit_LSM303_Mag_Unified   _mag;
+  Adafruit_L3GD20_Unified       _gyro;
+  Adafruit_9DOF                 _dof;
   
 };
 

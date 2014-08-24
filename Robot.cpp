@@ -1,11 +1,22 @@
 
 #include "Robot.h"
 
-Robot::Robot( MotorControl & lft, MotorControl & rht )
+Robot::Robot( 
+    MotorControl & lft, 
+    MotorControl & rht,
+    Adafruit_LSM303_Accel_Unified & accel,
+    Adafruit_LSM303_Mag_Unified   & mag,
+    Adafruit_L3GD20_Unified       & gyro,
+    Adafruit_9DOF                 & dof
+  )
   :
   _mode( ROBOT_IDLE ),
   _lft( lft ),
-  _rht( rht )
+  _rht( rht ),
+  _accel( accel ),
+  _mag( mag ),
+  _gyro( gyro ),
+  _dof( dof )
 {
 
 }
@@ -16,7 +27,7 @@ int Robot::reset()
   _lft.reset();
   _rht.reset();
   _mode = ROBOT_IDLE;
-  autonmous_reset();
+  this->autonomous_reset();
 }
 
 // This should get called each "loop" funciton iteration.  Depending on what mode we're in, let's made some calls on what we want to do.
@@ -48,7 +59,7 @@ typedef enum
 
 PlanningState planState = RESET;
 
-int Robot::autonmous_reset()
+int Robot::autonomous_reset()
 {
   planState = RESET;
 }

@@ -152,7 +152,7 @@ MotorControl rht( "rht", rhtEn, PWM_RESOLUTION, rhtA, rhtB, rhtQa, rhtQb, rKp, r
 
 #include "Robot.h"
 
-Robot robot = Robot( lft, rht );
+Robot robot = Robot( lft, rht, accel, mag, gyro, dof );
 
 
 void setup()
