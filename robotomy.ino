@@ -1,5 +1,18 @@
 
 
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303_U.h>
+#include <Adafruit_L3GD20_U.h>
+#include <Adafruit_9DOF.h>
+
+/* Assign a unique ID to the sensors */
+Adafruit_LSM303_Accel_Unified accel = Adafruit_LSM303_Accel_Unified(30301);
+Adafruit_LSM303_Mag_Unified   mag   = Adafruit_LSM303_Mag_Unified(30302);
+Adafruit_L3GD20_Unified       gyro  = Adafruit_L3GD20_Unified(20);
+Adafruit_9DOF                 dof   = Adafruit_9DOF();
+
+
 
 // Motor control
 #include <Encoder.h>
@@ -114,7 +127,13 @@ Adafruit_CC3000_Server echoServer(LISTEN_PORT);
 
 // PID tuning constants.  Currently using same values for both left and right, but
 // have it set up so I can easily use individual values if needed.
-#define KP  2.5
+//   - NOTE:  One problem I'm having here is that the values I need are highly dependent on the 
+//            voltage level of my power supply.  When I switch from my 5V power supply to my 7.2V
+//            battery, I (obviously) get different performance out of my motors.  This messes with
+//            my PID tunings though.  Need a better approach here I think.. maybe standard PID is
+//            not going to work in this case.  May need a more "involved" approach, especially as I
+//            move towards controlling the velocity of the motors rather than the position.
+#define KP  1.5
 #define KI  0.0
 #define KD  0.0
 
@@ -131,10 +150,36 @@ MotorControl lft( "lft", lftEn, PWM_RESOLUTION, lftA, lftB, lftQa, lftQb, lKp, l
 MotorControl rht( "rht", rhtEn, PWM_RESOLUTION, rhtA, rhtB, rhtQa, rhtQb, rKp, rKi, rKd, 1 );  
 
 
+#include "Robot.h"
+
+Robot robot = Robot( lft, rht );
+
+
 void setup()
 {
   Serial.begin(115200);
   Serial.println( "dc motor with encoder test" );
+  
+    /* Initialise the sensors */
+  if(!accel.begin())
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println(F("Ooops, no LSM303 detected ... Check your wiring!"));
+    while(1);
+  }
+  if(!mag.begin())
+  {
+    /* There was a problem detecting the LSM303 ... check your connections */
+    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    while(1);
+  }
+  if(!gyro.begin())
+  {
+    /* There was a problem detecting the L3GD20 ... check your connections */
+    Serial.print("Ooops, no L3GD20 detected ... Check your wiring or I2C ADDR!");
+    while(1);
+  }
+
   
   // On the Due, set the PWM resolution to 12 bits.  Won't compile for other board types.  Also requires
   // arduino 1.5.6-r2 (BETA) or later.
@@ -154,13 +199,13 @@ void setup()
   }
   Serial.println(F("\nInitialized..."));
   
-  uint16_t firmware = checkFirmwareVersion();
-  if (firmware < 0x113) {
-    Serial.println(F("Wrong firmware version!"));
-    for(;;);
-  } 
+  //uint16_t firmware = checkFirmwareVersion();
+  //if (firmware < 0x113) {
+  //  Serial.println(F("Wrong firmware version!"));
+  //  for(;;);
+  //} 
   
-  displayMACAddress();
+  //displayMACAddress();
  
  
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
@@ -178,40 +223,82 @@ void setup()
   }  
 
   /* Display the IP address DNS, Gateway, etc. */  
-  while (! displayConnectionDetails()) {
-    delay(1000);
-  }
+  //while (! displayConnectionDetails()) {
+  //  delay(1000);
+  //}
 
   // Start listening for connections
   echoServer.begin();
   
   Serial.println(F("Listening for connections..."));
   
+  
+  
 }
 
 
 elapsedMillis elapsed;
 
+
+
+void getValidStreams( Stream & stream )
+{
+  // I'm not sure why its done this way, but Adafruit has in their sample code for the CC3000
+  // that at the beginning of each loop call, you determine whether there is a client by
+  // calling "availalble()" method.
+  
+  // Because Adafruit didn't implement their class as a Stream, I created a wrapper class (ClientStream)
+  // that provides a Stream API.  I then created teh MuxStream class that takes input from any of the
+  // available Streams, and then echoes all output out both Streams.  (Sort of a bi-directional "mux".)
+  
+  // This was done so I would be able to implement my command parser once, and have it be available on any
+  // stream.
+  
+  // Note for the future, the echoServer used here is a TCP-based connection (echo port 7)..  I would like
+  // to eventually make this UDP based so I don't have to reconnect with a telnet client on my PC each
+  // time I reboot the arduino.  Making this into a UDP mechanism that works off broadcast packets would
+  // allow me to create a "sniffer" app in Python to monitor the state of the Arduino, and to implement
+  // a "Stream" that makes any broadcast packets from the Python app available as input data to the Arduino.
+  // It is the way it is right now because I wanted something quick to test with.
+
+  
+  // Try to get a client which is connected.
+  Adafruit_CC3000_ClientRef client = echoServer.available();
+  
+  if (client) {
+    // We have a connection from an eithernet client active, let's make sure
+    // we mux our serial output with the ethernet channel.
+  
+    // Create a stream from the client connection
+    ClientStream clientStream = ClientStream( &client );
+
+    // Mux the stream with the Serial port
+    stream = MuxStream( &clientStream, &Serial );    
+  }
+  else
+  {
+    // Just one stream
+    stream = MuxStream( &Serial );
+  }
+
+}
+
+
 void loop()
 {
     
   char cmd = '\0';
-  MuxStream stream;
+  MuxStream stream;  
+  /* Get a new sensor event */
+  sensors_event_t event;
+
+  
+  // Get out input/output channel(s)
+  getValidStreams( stream );
+  
 
   // Get commands from either client or serial port
   
-  // Try to get a client which is connected.
-  Adafruit_CC3000_ClientRef client = echoServer.available();
-  if (client) {
-    ClientStream clientStream = ClientStream( &client );
-
-    stream = MuxStream( &clientStream );    
-  }
-  else
-  {
-    stream = MuxStream( &Serial );
-  }
-
   if( stream.available() )
   {
     char cmd = stream.read();
@@ -223,6 +310,8 @@ void loop()
       case 'B':
       {
         long newPosition = stream.parseInt();
+        
+        robot.setMode( Robot::ROBOT_DIAG );
 
         stream.print( cmd );
         stream.print( " new position: " );
@@ -245,6 +334,8 @@ void loop()
         double ki = lft.get_ki();
         double kd = lft.get_kd();
         
+        robot.setMode( Robot::ROBOT_DIAG );
+                
         stream.print( "Kp=" );
         stream.print( kp );
         stream.print( ", Ki=" );
@@ -256,6 +347,9 @@ void loop()
       case 'P':
       {
         double k = stream.parseFloat();
+        
+        robot.setMode( Robot::ROBOT_DIAG );
+        
         lft.set_kp( k );
         rht.set_kp( k );
       }
@@ -263,6 +357,9 @@ void loop()
       case 'I':
       {
         double k = stream.parseFloat();
+        
+        robot.setMode( Robot::ROBOT_DIAG );
+        
         lft.set_ki( k );
         rht.set_ki( k );
       }
@@ -270,21 +367,32 @@ void loop()
       case 'D':
       {
         double k = stream.parseFloat();
+        
+        robot.setMode( Robot::ROBOT_DIAG );
+        
         lft.set_kd( k );
         rht.set_kd( k );
       }
       break;
       case 'X':
       {
-        lft.reset();
-        rht.reset();
+        robot.reset();
+
       }
       break;
       case 'S':
       {
+        robot.setMode( Robot::ROBOT_DIAG );
         displayConnectionDetails();
       }
-      break;      case '?':
+      break;   
+      case 'A':
+      {
+        stream.println( "Going autonomous.  Type X to reset." );
+        robot.setMode( Robot::ROBOT_AUTO );
+      }
+      break;       
+      case '?':
       default:
       {
         stream.println( "Commands:" );
@@ -301,6 +409,7 @@ void loop()
         stream.println( "    D<float>  - Kd, derivative" );
         stream.println( "" );
         stream.println( "  Misc: " );
+        stream.println( "    A         - Autonomous" );
         stream.println( "    X         - Reset" );
         stream.println( "    S         - Status" );
         stream.println( "" );
@@ -310,10 +419,10 @@ void loop()
       
   } 
   
-  lft.manage_motor();
-  rht.manage_motor();
+  robot.tick_occurred( stream );
+
   
-  if( elapsed > 1000 )
+  if( elapsed > 5000 )
   {
     // Need to convert these to a distance measurement at some point.  Right now just using raw analog input value.
     // Also eventually need these to gate any motor movement.  Should they cross below some threshold, I want them
@@ -324,19 +433,168 @@ void loop()
     //
     // At this point, I'm pleased that the sensors are working and there are no obvious wiring problems.
     
-    int ir1In = analogRead( ir1 );
-    int sonar1In = analogRead( sonar1 );
+    double irDist = getIrDist( analogRead( ir1 ) );
+    
+
+
     
     stream.print( "IR=" );
-    stream.print( ir1In );
+    stream.print( irDist );
+    stream.print( " in, " );
     
-    stream.print( "  Sonar=" );
-    stream.println( sonar1In );
+    // Disabling sonar for now.  The sensor that I have has a beam pattern that goes out at a 45 degree angle for
+    // maybe 90 cm or so.  My robot is only about 8 inches high, so the sonar always seems to pick up the floor.
+    // I need to mount it on a pole I think and use it as a long-view distance sensor, possibly on a servo.
+    //double sonarDist = getSonarDist( analogRead( sonar1 ) );    stream.print( "  Sonar=" );
+    //stream.print( sonarDist );
+    //stream.print( " in, " );
+    
+    sensors_event_t accel_event;
+    sensors_event_t mag_event;
+    sensors_vec_t   orientation;
+  
+    /* Read the accelerometer and magnetometer */
+    accel.getEvent(&accel_event);
+    mag.getEvent(&mag_event);
+  
+    /* Use the new fusionGetOrientation function to merge accel/mag data */  
+    if (dof.fusionGetOrientation(&accel_event, &mag_event, &orientation))
+    {
+      /* 'orientation' should have valid .roll and .pitch fields */
+      Serial.print(F("Orientation: "));
+      Serial.print(orientation.roll);
+      Serial.print(F(" "));
+      Serial.print(orientation.pitch);
+      Serial.print(F(" "));
+      Serial.print(orientation.heading);
+      Serial.println(F(""));
+    }      
+    
     elapsed = 0;
+
   }
     
 }
 
+// I use this to simulate various voltage values when testing my analog sensor "algorithms".  If you pass in the voltage
+// it will return what analogRead() would have returned.  This lets you quickly validate that your interpretation of
+// the voltage values is correct over a range of voltage values.
+int simulate( double voltage )
+{
+  double reference = 3.3;
+  double ratio = voltage / reference;
+  double resolution = 1024.0;
+  int adc_value = ratio * resolution;
+  
+  return adc_value;
+}
+
+double getIrDist( int sensor_value )
+{
+    
+   // the Sharp IR sensors output voltage will range from
+   // 3V when the obj is 4" / 10 cm away and will be 0.4V
+   // when the obj is 32" / 80 cm away.
+   
+   // We are using a 3.3V reference signal.  The ADCs on the
+   // Due are 12-bit ADCs, but are configured by default to be
+   // 10-bit ADCs to be compatible with prior Arduinos.  For
+   // now we're using the default, so our voltagle will range
+   // from 0 - 1024.
+   
+   // To calculate the equation to convert voltage to distance,
+   // we need to solve the following equations:
+   //
+   //    4" = m * 3.0V + b
+   //   32" = m * 0.4V + b
+   //
+   //   Solving the first equation for m:
+   //     m = ( 4" - b ) / 3V
+   //     m = 4/3  - b/3
+   //     m = 1.333333 - .333333 b
+   //   
+   //   Substituting into second equation:
+   //   32 = ( 1.33333 - .33333 b ) * 0.4 + b
+   //   32 = .53333333 - .13333 b + b
+   //   32 = .53333333 + .86667 b
+   //   31.46666666  = .86666667 b
+   //   36.3 = b
+
+   //   Solving for m using b:
+   //
+   //     m = 1.333333 - .333333 * 36.3
+   //     m = 1.333333 - 12.09999999
+   //     m = -10.76666667
+   //
+   //   Formula is thus:
+   //     y = -10.76666667 * x + 36.3
+   //
+   //   Or:
+   //
+   //     dist = -10.76666667 * voltage + 36.3   
+
+   double reference = 3.3; 
+   double resolution = 1024.0;
+   
+   double normal_value = sensor_value / resolution;
+   double voltage = normal_value * reference;
+   
+   Serial.print( "IR raw: " );
+   Serial.print( sensor_value );
+   Serial.print( ", " );
+   
+   Serial.print( "voltage: " );
+   Serial.print( voltage );
+   Serial.print( ", " );
+   
+   double dist = -10.76666667 * voltage + 36.3;
+   
+   Serial.print( "distance: " );
+   Serial.print( dist );
+   Serial.println( "" );   
+   
+   return dist;
+}
+
+
+double getSonarDist( int sensor_value )
+{
+    
+   // the Maxbotix Sonar sensor analog interface provides Vcc/512 
+   // volts-per-inch.  So a voltage of 0 is 0 inches and a voltage
+   // of Vcc (3.3V) is 254 inches.
+   
+   // We are using a 3.3V reference signal.  The ADCs on the
+   // Due are 12-bit ADCs, but are configured by default to be
+   // 10-bit ADCs to be compatible with prior Arduinos.  For
+   // now we're using the default, so our voltagle will range
+   // from 0 - 1024.
+   
+   // Thus, to calculate distances, the formula is:
+   //     dist = ( sensor_value / 1024 ) * 254"
+  
+   double reference = 3.3; 
+   double resolution = 1024.0;
+   
+   double normal_value = sensor_value / resolution;
+   double voltage = normal_value * reference;
+   
+   //Serial.print( "Sonar raw: " );
+   //Serial.print( sensor_value );
+   //Serial.print( ", " );
+   
+   //Serial.print( "voltage: " );
+   //Serial.print( voltage );
+   //Serial.print( ", " );
+   
+   double dist = normal_value * 254.0;
+
+   //Serial.print( "distance: " );
+   //Serial.print( dist );
+   //Serial.println( "" );   
+      
+   return dist;
+}
 
 
 /**************************************************************************/
@@ -428,3 +686,6 @@ bool displayConnectionDetails(void)
     return true;
   }
 }
+
+
+

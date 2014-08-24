@@ -25,6 +25,8 @@ class MotorControl
       double pid_kd,
       int invert
       );
+    MotorControl(const MotorControl& other);
+    void operator=(const MotorControl& other);
 
     void stop();
     void reset();

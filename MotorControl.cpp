@@ -61,6 +61,38 @@ MotorControl::MotorControl(
   pid.SetMode(AUTOMATIC);  
 }
 
+MotorControl::MotorControl(const MotorControl& other) :
+        name( other.name ),
+        pinEn( other.pinEn ),
+        pwmRes( other.pwmRes ),
+        pinDirA( other.pinDirA ),
+        pinDirB( other.pinDirB ),
+        pinQuadA( other.pinQuadA ),
+        pinQuadB( other.pinQuadB ),
+        Kp( other.Kp ),
+        Ki( other.Ki ),
+        Kd( other.Kd ),
+        encoder( other.encoder ),
+        pid( other.pid )
+{
+}
+
+void MotorControl::operator=(const MotorControl& other)
+{
+  this->name = other.name;
+  this->pinEn = other.pinEn;
+  this->pwmRes = other.pwmRes;
+  this->pinDirA = other.pinDirA;
+  this->pinDirB = other.pinDirB;
+  this->pinQuadA = other.pinQuadA;
+  this->Kp = other.Kp;
+  this->Ki = other.Ki;
+  this->Kd = other.Kd;
+  this->encoder = other.encoder;
+  this->pid = other.pid;
+}
+    
+
 void MotorControl::set_desired_position( long newPosition )
 {
   desiredPos = (newPosition * inverted);
