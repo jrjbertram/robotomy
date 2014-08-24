@@ -16,6 +16,7 @@ int Robot::reset()
   _lft.reset();
   _rht.reset();
   _mode = ROBOT_IDLE;
+  autonmous_reset();
 }
 
 // This should get called each "loop" funciton iteration.  Depending on what mode we're in, let's made some calls on what we want to do.
@@ -38,12 +39,22 @@ int Robot::tick_occurred( Stream & stream )
 // put the variables there.  There really isn't any benefit to this that I can see right now.  I can leave it as a code cleanup activity once I"m through
 // some of my prototyping.
 
+typedef enum
+{
+  RESET,
+  INIT,
+  
+} PlanningState;
 
+PlanningState planState = RESET;
 
-
+int Robot::autonmous_reset()
+{
+  planState = RESET;
+}
 
 int Robot::autonomous_tick_ocurred( Stream & stream )
 {
-  
+      
 }
 

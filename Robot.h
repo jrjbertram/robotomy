@@ -17,7 +17,7 @@ class Robot
   // Define a state machine for our robot
   typedef enum   {
     ROBOT_IDLE,  // nothing is activated, no inputs or outputs processed
-    ROBOT_DIAG,  // diagnostic mode, inputs are processed and reported, output is manually driven
+    ROBOT_DIAG,  // diagnostic mode, inputs are processed and reported, output is manually driven from outside this class
     ROBOT_AUTO,  // fully autonomous mode -- look out!
   } RobotMode;
 
@@ -33,7 +33,8 @@ class Robot
   
   MotorControl _lft;
   MotorControl _rht;
-  
+    
+  int autonomous_reset();
   int autonomous_tick_ocurred( Stream & stream );
   
 };
