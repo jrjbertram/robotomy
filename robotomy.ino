@@ -154,6 +154,10 @@ MotorControl rht( "rht", rhtEn, PWM_RESOLUTION, rhtA, rhtB, rhtQa, rhtQb, rKp, r
 
 Robot robot = Robot( lft, rht, accel, mag, gyro, dof );
 
+#include "UdpStream.h"
+
+UdpStream netConsole = UdpStream( 31000 );
+
 
 void setup()
 {
@@ -223,12 +227,23 @@ void setup()
   }  
 
   /* Display the IP address DNS, Gateway, etc. */  
-  //while (! displayConnectionDetails()) {
-  //  delay(1000);
-  //}
+  while (! displayConnectionDetails()) {
+    delay(1000);
+  }
 
   // Start listening for connections
   echoServer.begin();
+  
+  // Start up our net conole
+  int status = netConsole.begin();
+  
+  Serial.print( "Netconsole status " );
+  Serial.println( status );
+  
+  int ip = 0xC0A80164;
+  Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print("...");  
+  int replies = cc3000.ping(ip, 5);
+  Serial.print(replies); Serial.println(F(" replies"));
   
   Serial.println(F("Listening for connections..."));
   
@@ -469,6 +484,11 @@ void loop()
       Serial.print(orientation.heading);
       Serial.println(F(""));
     }      
+    
+    int status = netConsole.print( "testing" );
+    Serial.print( "netConsole print status: " );
+    Serial.println( status );
+    
     
     elapsed = 0;
 
