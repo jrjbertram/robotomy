@@ -46,19 +46,24 @@ class MuxStream : public Stream {
   MuxStream( Stream * a, Stream * b ) { _a = a; _b = b;}
   MuxStream( Stream * a  ) { _a = a; _b = NULL;}  
   MuxStream() { _a = NULL; _b = NULL;}  
-  MuxStream(const MuxStream& copy) { _a = copy._a; _b = copy._b; }
+  MuxStream(const MuxStream& copy) : _a( copy._a ), _b( copy._b ) {}
   void operator=(const MuxStream& copy) { _a = copy._a; _b = copy._b; }
   
   int available() { 
+
     if( _a && _a->available() )
     {
+      //Serial.println( "mux a availalbe" );
       return 1;
     }
     
     if( _b && _b->available() )
     {
+      //Serial.println( "mux b availalbe" );
       return 1;
-    }    
+    }
+  
+    return 0;  
   }
   
   size_t write( uint8_t data) {

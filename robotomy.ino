@@ -240,12 +240,14 @@ void setup()
   Serial.print( "Netconsole status " );
   Serial.println( status );
   
-  int ip = 0xC0A80164;
-  Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print("...");  
-  int replies = cc3000.ping(ip, 5);
-  Serial.print(replies); Serial.println(F(" replies"));
+  //netConsole.println( "robot reset" );
   
-  Serial.println(F("Listening for connections..."));
+  //int ip = 0xC0A80164;
+  //Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print("...");  
+  //int replies = cc3000.ping(ip, 5);
+  //Serial.print(replies); Serial.println(F(" replies"));
+  
+  //Serial.println(F("Listening for connections..."));
   
   
   
@@ -254,63 +256,16 @@ void setup()
 
 elapsedMillis elapsed;
 
-
-
-void getValidStreams( Stream & stream )
-{
-  // I'm not sure why its done this way, but Adafruit has in their sample code for the CC3000
-  // that at the beginning of each loop call, you determine whether there is a client by
-  // calling "availalble()" method.
-  
-  // Because Adafruit didn't implement their class as a Stream, I created a wrapper class (ClientStream)
-  // that provides a Stream API.  I then created teh MuxStream class that takes input from any of the
-  // available Streams, and then echoes all output out both Streams.  (Sort of a bi-directional "mux".)
-  
-  // This was done so I would be able to implement my command parser once, and have it be available on any
-  // stream.
-  
-  // Note for the future, the echoServer used here is a TCP-based connection (echo port 7)..  I would like
-  // to eventually make this UDP based so I don't have to reconnect with a telnet client on my PC each
-  // time I reboot the arduino.  Making this into a UDP mechanism that works off broadcast packets would
-  // allow me to create a "sniffer" app in Python to monitor the state of the Arduino, and to implement
-  // a "Stream" that makes any broadcast packets from the Python app available as input data to the Arduino.
-  // It is the way it is right now because I wanted something quick to test with.
-
-  
-  // Try to get a client which is connected.
-  Adafruit_CC3000_ClientRef client = echoServer.available();
-  
-  if (client) {
-    // We have a connection from an eithernet client active, let's make sure
-    // we mux our serial output with the ethernet channel.
-  
-    // Create a stream from the client connection
-    ClientStream clientStream = ClientStream( &client );
-
-    // Mux the stream with the Serial port
-    stream = MuxStream( &clientStream, &Serial );    
-  }
-  else
-  {
-    // Just one stream
-    stream = MuxStream( &Serial );
-  }
-
-}
-
+int counter = 0;
 
 void loop()
 {
     
   char cmd = '\0';
-  MuxStream stream;  
+  MuxStream stream = MuxStream( &Serial );
+//  MuxStream stream = MuxStream( &netConsole, &Serial );
   /* Get a new sensor event */
-  sensors_event_t event;
-
-  
-  // Get out input/output channel(s)
-  getValidStreams( stream );
-  
+  sensors_event_t event; 
 
   // Get commands from either client or serial port
   
@@ -392,6 +347,7 @@ void loop()
       case 'X':
       {
         robot.reset();
+        stream.println( "Robot is reset." );
 
       }
       break;
@@ -406,7 +362,15 @@ void loop()
         stream.println( "Going autonomous.  Type X to reset." );
         robot.setMode( Robot::ROBOT_AUTO );
       }
-      break;       
+      break;
+      
+//      case ' ':
+//      case '\r':
+//      case '\n':
+//      case '\t':
+//        // ignore these
+//      break;  
+      
       case '?':
       default:
       {
@@ -476,23 +440,25 @@ void loop()
     if (dof.fusionGetOrientation(&accel_event, &mag_event, &orientation))
     {
       /* 'orientation' should have valid .roll and .pitch fields */
-      Serial.print(F("Orientation: "));
-      Serial.print(orientation.roll);
-      Serial.print(F(" "));
-      Serial.print(orientation.pitch);
-      Serial.print(F(" "));
-      Serial.print(orientation.heading);
-      Serial.println(F(""));
+      stream.print(F("Orientation: "));
+      stream.print(orientation.roll);
+      stream.print(F(" "));
+      stream.print(orientation.pitch);
+      stream.print(F(" "));
+      stream.print(orientation.heading);
+      stream.println(F(""));
     }      
     
-    int status = netConsole.print( "testing" );
-    Serial.print( "netConsole print status: " );
-    Serial.println( status );
+//    int status = netConsole.print( "testing" );
+//    Serial.print( "netConsole print status: " );
+//    Serial.println( status );
     
     
     elapsed = 0;
 
   }
+  
+  //netConsole.print( counter );
     
 }
 

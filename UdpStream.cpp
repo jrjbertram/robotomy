@@ -41,10 +41,10 @@ bool UdpStream::begin() {
 }
 
 int UdpStream::available() {
-  Serial.println( "available: enter" );
+//  Serial.println( "available: enter" );
   if ( rdCount == 0 )
   {
-    Serial.println( "rdCount was zero" );
+//    Serial.println( "rdCount was zero" );
 
     timeval timeout;
     timeout.tv_sec = 0;
@@ -53,39 +53,40 @@ int UdpStream::available() {
     FD_ZERO(&reads);
     FD_SET(_socket, &reads);
     
-    Serial.println( "Calling select" );
+//    Serial.println( "Calling select" );
     select(_socket + 1, &reads, NULL, NULL, &timeout);
-    Serial.println( "select returned" );
+//    Serial.println( "select returned" );
     
     if (!FD_ISSET(_socket, &reads)) {
       // No data to read.
-      Serial.println("No data to read.");
+//      Serial.println("No data to read.");
       return false;
     }
   }
 
-  Serial.println( "available: returning true" );
+//  Serial.println( "available: returning true" );
   return true;
 }
 
 size_t UdpStream::write( uint8_t data)
 {
-  Serial.println( "write: entry" );
+  //Serial.println( "write: entry" );
   
   sockaddr_in address;
   memset(&address, 0, sizeof(address));
   address.sin_family = AF_INET;
-  address.sin_port = htons(_port);
+  address.sin_port = htons(5005);
   // JRB: Need to figure out how to set this to broadcast, or maybe a multicast address
-  address.sin_addr.s_addr = 0xE1000025;  // multicast 225.0.0.37
-  //address.sin_addr.s_addr = 0xC0A80164;  // 192.168.1.255, broadcast addr
+  //address.sin_addr.s_addr = 0xE1000025;  // multicast 225.0.0.37
+  //address.sin_addr.s_addr = 0xC0A80164;  // 192.168.1.100... laptop addr.
+  address.sin_addr.s_addr = 0x6401a8C0;  // 192.168.1.100... laptop addr.  Byte swapped correctly!!
   socklen_t len = sizeof(address);
 
 
-  Serial.println( "calling sendto" );
+//  Serial.print( "calling sendto... " );
   int n = sendto(_socket, &data, 1, 0, (sockaddr*)&address, len);
-  Serial.print( "sendto returned " );
-  Serial.println( n );
+//  Serial.print( "sendto returned " );
+//  Serial.println( n );
   if ( n < 0 )
   {
     return 0;
@@ -98,15 +99,15 @@ size_t UdpStream::write( uint8_t data)
 
 int UdpStream::read()
 {
-  Serial.println( "read: entry" );
+//  Serial.println( "read: entry" );
   if ( rdCount == 0 )
   {
-    Serial.println( "rdCount was zero" );
+//    Serial.println( "rdCount was zero" );
     // Out of data, read in some more
     rdCount = readData( rdBuf, sizeof( rdBuf ) );
     rdPos = 0;
 
-    Serial.println( "readData returned" );
+//    Serial.println( "readData returned" );
     if ( rdCount < 1 )
     {
       // There was an error, return the count to zero
@@ -167,12 +168,12 @@ void UdpStream::flush()
 int UdpStream::readData(char *buffer, int bufferSize) {
   // If there is data, then stores it into buffer &
   // returns the length of buffer. (-1 if none)
-  Serial.println( "readData: entry" );
+//  Serial.println( "readData: entry" );
   if (available()) {  // Make sure data is really available - bummer because it again calls select and has that 5 ms wait.
 
-    Serial.println( "calling recv" );
+//    Serial.println( "calling recv" );
     int n = recv(_socket, buffer, bufferSize, 0);
-    Serial.println( "recv returned" );
+//    Serial.println( "recv returned" );
 
     if (n < 1) {
       // Error getting data.
