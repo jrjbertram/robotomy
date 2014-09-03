@@ -28,6 +28,10 @@ class MotorControl
     MotorControl(const MotorControl& other);
     void operator=(const MotorControl& other);
 
+    void setStream( Stream * stream ) {
+      _stream = stream;
+    }    
+    
     void stop();
     void reset();
     
@@ -90,6 +94,9 @@ class MotorControl
 
     // State tracking variables
     int currentDirection;
+    
+    // Debug stream
+    Stream * _stream;
 
     // Internal low-level motor API
     void forward();

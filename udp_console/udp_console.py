@@ -2,6 +2,7 @@
 import sys
 import socket
 import select
+from time import sleep
 
 
 UDP_IP = "0.0.0.0"
@@ -15,6 +16,7 @@ sock.bind((UDP_IP, UDP_PORT))
 
 while True:
   # Check for input from either stdin or our socket
+  sleep(0.001) # Time in seconds.
  
   activity =  select.select([sys.stdin, sock], [], [], 0)[0]
 

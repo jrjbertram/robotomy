@@ -1,4 +1,5 @@
 
+#define ENABLE_NET
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -20,11 +21,13 @@ Adafruit_9DOF                 dof   = Adafruit_9DOF();
 #include "due_pwm.h"  // library to allow custom PWM frequencies
 #include "MotorControl.h"
 
+#ifdef ENABLE_NET
 // Wifi shield
 #include <ccspi.h>
 #include <Adafruit_CC3000.h>
 #include <Adafruit_CC3000_Server.h>
 #include <SPI.h>  // neede for some reason here too
+#endif
 
 // Elapsed time measurement
 #include "elapsedMillis.h"
@@ -55,11 +58,13 @@ Adafruit_9DOF                 dof   = Adafruit_9DOF();
 //         * SPI MISO - pin 12                           -- I believe these are hard wired
 //         * SPI MOSI - pin 11                           -- I believe these are hard wired
 
+#ifdef ENABLE_NET
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
 #define ADAFRUIT_CC3000_VBAT  5  // Can be any pin
 #define ADAFRUIT_CC3000_CS    10 // Can be any pin
 // Use hardware SPI for the remaining pins
 // On an UNO, SCK = 13, MISO = 12, and MOSI = 11
+#endif
 
 //   - On Due, pins 6, 7, 8, and 9 can be used for special high-frequency PWM signals.  Normally the frequency is 500Hz I believe,
 //     but when driving motors, at low duty cycles this creates an audible squeal.  Upping the PWM frequency above 20KHz puts it
@@ -106,6 +111,7 @@ int sonar1 = A1;
 
 
 
+#ifdef ENABLE_NET
 Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ, ADAFRUIT_CC3000_VBAT,
                                          SPI_CLOCK_DIVIDER); // you can change this clock speed
 #include "wifi_credentials.h"  // defines WLAN_SSID and WLAN_PASS strings
@@ -115,7 +121,8 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 
 #define LISTEN_PORT           7    // What TCP port to listen on for connections.  The echo protocol uses port 7.
 
-Adafruit_CC3000_Server echoServer(LISTEN_PORT);
+//Adafruit_CC3000_Server echoServer(LISTEN_PORT);
+#endif
 
 
 #define PWM_BITS        12     // On Due, you can change the resolution from 8 bits (0-255) to 12 bits (0-4095).
@@ -152,12 +159,17 @@ MotorControl rht( "rht", rhtEn, PWM_RESOLUTION, rhtA, rhtB, rhtQa, rhtQb, rKp, r
 
 #include "Robot.h"
 
-Robot robot = Robot( lft, rht, accel, mag, gyro, dof );
+Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof );
 
 #include "UdpStream.h"
 
-UdpStream netConsole = UdpStream( 31000 );
+UdpStream netConsole = UdpStream( 5005 );
 
+#ifdef ENABLE_NET
+MuxStream stream = MuxStream( &netConsole, &Serial );
+#else
+MuxStream stream = MuxStream( &Serial );
+#endif
 
 void setup()
 {
@@ -192,6 +204,7 @@ void setup()
   pwm_setup( lftEn, PWM_FREQUENCY, 1 );
   pwm_setup( rhtEn, PWM_FREQUENCY, 1 ); 
   
+#ifdef ENABLE_NET
   displayDriverMode();
   //Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
 
@@ -231,26 +244,12 @@ void setup()
     delay(1000);
   }
 
-  // Start listening for connections
-  echoServer.begin();
-  
   // Start up our net conole
   int status = netConsole.begin();
   
-  Serial.print( "Netconsole status " );
-  Serial.println( status );
-  
-  //netConsole.println( "robot reset" );
-  
-  //int ip = 0xC0A80164;
-  //Serial.print(F("\n\rPinging ")); cc3000.printIPdotsRev(ip); Serial.print("...");  
-  //int replies = cc3000.ping(ip, 5);
-  //Serial.print(replies); Serial.println(F(" replies"));
-  
-  //Serial.println(F("Listening for connections..."));
-  
-  
-  
+#endif
+    
+  robot.setStream( &stream );
 }
 
 
@@ -262,8 +261,6 @@ void loop()
 {
     
   char cmd = '\0';
-  MuxStream stream = MuxStream( &Serial );
-//  MuxStream stream = MuxStream( &netConsole, &Serial );
   /* Get a new sensor event */
   sensors_event_t event; 
 
@@ -289,11 +286,15 @@ void loop()
     
         if( cmd == 'L' || cmd == 'B' )
         {
+          stream.print( "Setting Left to " );
+          stream.println( newPosition );
           lft.set_desired_position(newPosition);
         }
         
         if( cmd == 'R' || cmd == 'B' )
         {
+          stream.print( "Setting Right to " );
+          stream.println( newPosition );
           rht.set_desired_position(newPosition);
         }
       }
@@ -364,12 +365,12 @@ void loop()
       }
       break;
       
-//      case ' ':
-//      case '\r':
-//      case '\n':
-//      case '\t':
-//        // ignore these
-//      break;  
+      case ' ':
+      case '\r':
+      case '\n':
+      case '\t':
+        // ignore these
+      break;  
       
       case '?':
       default:
@@ -398,7 +399,7 @@ void loop()
       
   } 
   
-  robot.tick_occurred( stream );
+  robot.tick_occurred();
 
   
   if( elapsed > 5000 )
@@ -449,16 +450,9 @@ void loop()
       stream.println(F(""));
     }      
     
-//    int status = netConsole.print( "testing" );
-//    Serial.print( "netConsole print status: " );
-//    Serial.println( status );
-    
-    
     elapsed = 0;
 
   }
-  
-  //netConsole.print( counter );
     
 }
 
@@ -565,24 +559,13 @@ double getSonarDist( int sensor_value )
    double normal_value = sensor_value / resolution;
    double voltage = normal_value * reference;
    
-   //Serial.print( "Sonar raw: " );
-   //Serial.print( sensor_value );
-   //Serial.print( ", " );
-   
-   //Serial.print( "voltage: " );
-   //Serial.print( voltage );
-   //Serial.print( ", " );
-   
    double dist = normal_value * 254.0;
 
-   //Serial.print( "distance: " );
-   //Serial.print( dist );
-   //Serial.println( "" );   
-      
    return dist;
 }
 
 
+#ifdef ENABLE_NET
 /**************************************************************************/
 /*!
     @brief  Displays the driver mode (tiny of normal), and the buffer
@@ -673,5 +656,5 @@ bool displayConnectionDetails(void)
   }
 }
 
-
+#endif
 

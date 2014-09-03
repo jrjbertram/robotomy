@@ -1,3 +1,5 @@
+#ifdef ENABLE_NET
+
 class ClientStream : public Stream {
   public:
   ClientStream( Adafruit_CC3000_ClientRef * client ) { _client = client; haveCachedData = false;}
@@ -39,6 +41,7 @@ class ClientStream : public Stream {
   uint8_t cachedData;
   
 };
+#endif
 
 // Class that will let me mux output on two streams
 class MuxStream : public Stream {

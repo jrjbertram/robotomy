@@ -5,6 +5,9 @@
 #include "due_pwm.h"
 #include "MotorControl.h"
 
+#define PRINT( msg )    if( _stream ) { _stream->print  ( msg ); }
+#define PRINTLN( msg )  if( _stream ) { _stream->println( msg ); }
+
 MotorControl::MotorControl(
       char * motor_name,
       int enable_pin,
@@ -29,7 +32,8 @@ MotorControl::MotorControl(
         Ki( pid_ki ),
         Kd( pid_kd ),
         encoder( quadrature_A_pin, quadrature_B_pin ),
-        pid( &pidInput, &pidOutput, &pidSetpoint, pid_kp, pid_ki, pid_kd, DIRECT )
+        pid( &pidInput, &pidOutput, &pidSetpoint, pid_kp, pid_ki, pid_kd, DIRECT ),
+        _stream( NULL )
 {
   // Set the hbridge control pins as outputs
   pinMode( pinEn,  OUTPUT);
@@ -73,7 +77,8 @@ MotorControl::MotorControl(const MotorControl& other) :
         Ki( other.Ki ),
         Kd( other.Kd ),
         encoder( other.encoder ),
-        pid( other.pid )
+        pid( other.pid ),
+        _stream( other._stream )
 {
 }
 
@@ -90,6 +95,7 @@ void MotorControl::operator=(const MotorControl& other)
   this->Kd = other.Kd;
   this->encoder = other.encoder;
   this->pid = other.pid;
+  this->_stream = other._stream;
 }
     
 
@@ -107,36 +113,36 @@ void MotorControl::set_kp( double new_kp )
 {
   Kp = new_kp;
   pid.SetTunings( Kp, Ki, Kd );
-  Serial.print( "Kp=" );
-  Serial.print( Kp );
-  Serial.print( ", Ki=" );
-  Serial.print( Ki );
-  Serial.print( ", Kd=" );
-  Serial.println( Kd );
+  PRINT( "Kp=" );
+  PRINT( Kp );
+  PRINT( ", Ki=" );
+  PRINT( Ki );
+  PRINT( ", Kd=" );
+  PRINTLN( Kd );
 }
 
 void MotorControl::set_ki( double new_ki )
 {
   Ki = new_ki;
   pid.SetTunings( Kp, Ki, Kd );
-  Serial.print( "Kp=" );
-  Serial.print( Kp );
-  Serial.print( ", Ki=" );
-  Serial.print( Ki );
-  Serial.print( ", Kd=" );
-  Serial.println( Kd );
+  PRINT( "Kp=" );
+  PRINT( Kp );
+  PRINT( ", Ki=" );
+  PRINT( Ki );
+  PRINT( ", Kd=" );
+  PRINTLN( Kd );
 }
 
 void MotorControl::set_kd( double new_kd )
 {
   Kd = new_kd;
   pid.SetTunings( Kp, Ki, Kd );
-  Serial.print( "Kp=" );
-  Serial.print( Kp );
-  Serial.print( ", Ki=" );
-  Serial.print( Ki );
-  Serial.print( ", Kd=" );
-  Serial.println( Kd );
+  PRINT( "Kp=" );
+  PRINT( Kp );
+  PRINT( ", Ki=" );
+  PRINT( Ki );
+  PRINT( ", Kd=" );
+  PRINTLN( Kd );
 }
     
 void MotorControl::stop()
@@ -169,6 +175,8 @@ void MotorControl::go( int speed )
 void MotorControl::update_position()
 {
   currPos = encoder.read(); 
+  PRINT( "Reading encoder position" );
+  PRINTLN( currPos );
 }
 
 void MotorControl::set_motor_speed( int velocity )
@@ -220,6 +228,8 @@ int MotorControl::calculate_new_velocity()
     velocity = (int)pidOutput;
 //  }
   
+  PRINT( "New velocity: " );
+  PRINTLN( velocity );
   
   return velocity;
 }
@@ -231,25 +241,40 @@ void MotorControl::manage_motor()
 {
   int velocity;
 
-  
+  PRINTLN( "Updating position" );
   update_position();
   
+  PRINTLN( "Calculating velocity" );
   velocity = calculate_new_velocity();
 
   
+  PRINT( "lastpos(" );
+  PRINT( lastPos );
+  PRINT( ") != currPos(" );
+  PRINT( currPos );
+  PRINT( ") || lastDes(" );
+  PRINT( lastDes );
+  PRINT( ") != desiredPos (" );
+  PRINT( desiredPos );
+  PRINT( ") || lastVel(" );
+  PRINT( lastVel );
+  PRINT( ") != velocity( " );
+  PRINT( velocity );
+  PRINTLN( ")" );
+
   if( lastPos != currPos || 
       lastDes != desiredPos || 
       lastVel != velocity )
   {
-    Serial.print( name );
-    Serial.print( ": c=" );
-    Serial.print( currPos );
-    Serial.print( ", d=" );
-    Serial.print( desiredPos );
-    Serial.print( ", v=" );
-    Serial.print( velocity );
-    Serial.print( " " );
-    Serial.println( "" );
+    PRINT( name );
+    PRINT( ": c=" );
+    PRINT( currPos );
+    PRINT( ", d=" );
+    PRINT( desiredPos );
+    PRINT( ", v=" );
+    PRINT( velocity );
+    PRINT( " " );
+    PRINTLN( "" );
     
     lastPos = currPos;
     lastDes = desiredPos;

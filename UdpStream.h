@@ -11,11 +11,12 @@ class UdpStream : public Stream {
     UdpStream( uint16_t port );
     
     // Requried by Stream  
-    int available();
-    size_t write( uint8_t data);
-    int read();
-    int peek();
-    void flush();
+    virtual int available();
+    virtual size_t write( uint8_t data);
+    virtual size_t write( const uint8_t *buffer, size_t size);
+    virtual int read();
+    virtual int peek();
+    virtual void flush();
     
     // Plus a "begin" function to kick off the socket connections (so that we can control when exactly
     // we try to initialize our sockets.  We don't want to do this before the main program has initialized

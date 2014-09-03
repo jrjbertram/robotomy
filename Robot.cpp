@@ -1,13 +1,16 @@
 
 #include "Robot.h"
 
+#define PRINT( msg )    if( _stream ) { _stream->print  ( msg ); }
+#define PRINTLN( msg )  if( _stream ) { _stream->println( msg ); }
+
 Robot::Robot( 
-    MotorControl & lft, 
-    MotorControl & rht,
-    Adafruit_LSM303_Accel_Unified & accel,
-    Adafruit_LSM303_Mag_Unified   & mag,
-    Adafruit_L3GD20_Unified       & gyro,
-    Adafruit_9DOF                 & dof
+    MotorControl * lft, 
+    MotorControl * rht,
+    Adafruit_LSM303_Accel_Unified * accel,
+    Adafruit_LSM303_Mag_Unified   * mag,
+    Adafruit_L3GD20_Unified       * gyro,
+    Adafruit_9DOF                 * dof
   )
   :
   _mode( ROBOT_IDLE ),
@@ -16,31 +19,43 @@ Robot::Robot(
   _accel( accel ),
   _mag( mag ),
   _gyro( gyro ),
-  _dof( dof )
+  _dof( dof ),
+  _stream( NULL )
 {
-
+  // Note, intentionally using pointers here to refer to classes that have already been instantiated.  I don't actually
+  // want to create copies of the classes, since they refer to actual devices out there on my robot.  Creating copies
+  // of the classes (even indirectly) has generated a number of bizarre behaviors where referring to the instance in
+  // different areas of the code is in fact referring to different copies of the instance.
 }
 
 
 int Robot::reset()
 {
-  _lft.reset();
-  _rht.reset();
+  // Reset the motor controllers
+  if( _lft ) _lft->reset();
+  if( _rht ) _rht->reset();
+  
+  // Reset our internal mode
   _mode = ROBOT_IDLE;
+  
+  // Reset our autonomous operation logic
   this->autonomous_reset();
 }
 
-// This should get called each "loop" funciton iteration.  Depending on what mode we're in, let's made some calls on what we want to do.
-int Robot::tick_occurred( Stream & stream )
+// This should get called each "loop" funciton iteration.  Depending on what mode we're in, different operations will be performed
+int Robot::tick_occurred()
 {
+  
   if( _mode == ROBOT_DIAG )
   {
-    _lft.manage_motor();
-    _rht.manage_motor();
+    PRINTLN( "managing motors" );
+    if( _lft ) _lft->manage_motor();
+    if( _rht)  _rht->manage_motor();
   }
-  else if( _mode = ROBOT_AUTO )
+  else if( _mode == ROBOT_AUTO )
   {
-    this->autonomous_tick_ocurred( stream );
+    PRINT( "autononomous" );
+    this->autonomous_tick_ocurred();
   }
 }
 
@@ -64,8 +79,8 @@ int Robot::autonomous_reset()
   planState = RESET;
 }
 
-int Robot::autonomous_tick_ocurred( Stream & stream )
+int Robot::autonomous_tick_ocurred()
 {
-      
+
 }
 

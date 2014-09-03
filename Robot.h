@@ -14,48 +14,59 @@
 
 class Robot
 {
-  // Create a convenience class to contain the "autonomous" robot logic/algorithms.  Separating this out to keep the main *.ino file 
-  // manageable.  The main file will deal with the mechanics of getting input and providing this class with the glue logic, but this
-  // class will deal with managing the sensors, motion planning, and motor control at a high level.
-  
-  public:
-  
-  // Define a state machine for our robot
-  typedef enum   {
-    ROBOT_IDLE,  // nothing is activated, no inputs or outputs processed
-    ROBOT_DIAG,  // diagnostic mode, inputs are processed and reported, output is manually driven from outside this class
-    ROBOT_AUTO,  // fully autonomous mode -- look out!
-  } RobotMode;
+    // Create a convenience class to contain the "autonomous" robot logic/algorithms.  Separating this out to keep the main *.ino file
+    // manageable.  The main file will deal with the mechanics of getting input and providing this class with the glue logic, but this
+    // class will deal with managing the sensors, motion planning, and motor control at a high level.
 
-  Robot( 
-    MotorControl & lft, 
-    MotorControl & rht,
-    Adafruit_LSM303_Accel_Unified & accel,
-    Adafruit_LSM303_Mag_Unified   & mag,
-    Adafruit_L3GD20_Unified       & gyro,
-    Adafruit_9DOF                 & dof
-  );
-  
-  int setMode( RobotMode mode ) { _mode = mode; }
-  
-  int tick_occurred( Stream & stream );
-  int reset();
+  public:
+
+    // Define a state machine for our robot
+    typedef enum   {
+      ROBOT_IDLE,  // nothing is activated, no inputs or outputs processed
+      ROBOT_DIAG,  // diagnostic mode, inputs are processed and reported, output is manually driven from outside this class
+      ROBOT_AUTO,  // fully autonomous mode -- look out!
+    } RobotMode;
+
+    Robot(
+      MotorControl * lft,
+      MotorControl * rht,
+      Adafruit_LSM303_Accel_Unified * accel,
+      Adafruit_LSM303_Mag_Unified   * mag,
+      Adafruit_L3GD20_Unified       * gyro,
+      Adafruit_9DOF                 * dof
+    );
+
+    void setStream( Stream * stream ) {
+      _stream = stream;
       
-  int autonomous_reset();
+      if( _lft ) _lft->setStream( _stream );
+      if( _rht ) _rht->setStream( _stream );
+    }
+
+    int setMode( RobotMode mode ) {
+      _mode = mode;
+    }
+
+    int tick_occurred();
+    int reset();
 
   private:
-  RobotMode _mode;
-  
-  MotorControl _lft;
-  MotorControl _rht;
+    RobotMode _mode;
 
-  int autonomous_tick_ocurred( Stream & stream );
-  
-  Adafruit_LSM303_Accel_Unified _accel;
-  Adafruit_LSM303_Mag_Unified   _mag;
-  Adafruit_L3GD20_Unified       _gyro;
-  Adafruit_9DOF                 _dof;
-  
+    MotorControl * _lft;
+    MotorControl * _rht;
+
+    Adafruit_LSM303_Accel_Unified * _accel;
+    Adafruit_LSM303_Mag_Unified   * _mag;
+    Adafruit_L3GD20_Unified       * _gyro;
+    Adafruit_9DOF                 * _dof;
+    
+    Stream * _stream;
+
+    int autonomous_tick_ocurred();
+    int autonomous_reset();
+
+
 };
 
 
