@@ -11,6 +11,8 @@
 #include <Adafruit_L3GD20_U.h>
 #include <Adafruit_9DOF.h>
 
+#include "IRSensor.h"
+
 
 class Robot
 {
@@ -33,7 +35,8 @@ class Robot
       Adafruit_LSM303_Accel_Unified * accel,
       Adafruit_LSM303_Mag_Unified   * mag,
       Adafruit_L3GD20_Unified       * gyro,
-      Adafruit_9DOF                 * dof
+      Adafruit_9DOF                 * dof,
+      IRSensor                      * ir
     );
 
     void setStream( Stream * stream ) {
@@ -49,6 +52,8 @@ class Robot
 
     int tick_occurred();
     int reset();
+    
+    void getStatusString( String & result  );
 
   private:
     RobotMode _mode;
@@ -60,6 +65,8 @@ class Robot
     Adafruit_LSM303_Mag_Unified   * _mag;
     Adafruit_L3GD20_Unified       * _gyro;
     Adafruit_9DOF                 * _dof;
+    
+    IRSensor                      * _ir;
     
     Stream * _stream;
 

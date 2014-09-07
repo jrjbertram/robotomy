@@ -1,5 +1,6 @@
 
 #define ENABLE_NET
+#define NET_CONSOLE_TCP
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -20,6 +21,9 @@ Adafruit_9DOF                 dof   = Adafruit_9DOF();
 #include <PID_v1.h>
 #include "due_pwm.h"  // library to allow custom PWM frequencies
 #include "MotorControl.h"
+
+// Sensors
+#include "IRSensor.h"
 
 #ifdef ENABLE_NET
 // Wifi shield
@@ -119,9 +123,8 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
-#define LISTEN_PORT           7    // What TCP port to listen on for connections.  The echo protocol uses port 7.
+#define NET_CONSOLE_PORT       5005    // What TCP port will net console work on
 
-//Adafruit_CC3000_Server echoServer(LISTEN_PORT);
 #endif
 
 
@@ -156,27 +159,40 @@ double rKd = KD;
 MotorControl lft( "lft", lftEn, PWM_RESOLUTION, lftA, lftB, lftQa, lftQb, lKp, lKi, lKd, 0 );  
 MotorControl rht( "rht", rhtEn, PWM_RESOLUTION, rhtA, rhtB, rhtQa, rhtQb, rKp, rKi, rKd, 1 );  
 
+IRSensor ir = IRSensor( ir1 ); 
 
 #include "Robot.h"
 
-Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof );
+Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof, &ir );
 
-#include "UdpStream.h"
 
-UdpStream netConsole = UdpStream( 5005 );
 
 #ifdef ENABLE_NET
-MuxStream stream = MuxStream( &netConsole, &Serial );
+
+  #ifndef NET_CONSOLE_TCP
+      // Use UDP
+      #include "UdpStream.h"
+      UdpStream netConsole = UdpStream( 5005 );
+  
+      MuxStream stream = MuxStream( &netConsole, &Serial );
+  #else
+      // For TCP, I don't have a stream class at this time.
+      // The MuxStream idea might be dead.  Stream doesn't
+      // seem to support a "fast" printf right now.
+
+      Adafruit_CC3000_Client netConsole;
+      MuxStream stream = MuxStream( &Serial );
+  #endif
 #else
-MuxStream stream = MuxStream( &Serial );
+  MuxStream stream = MuxStream( &Serial );
 #endif
 
 void setup()
 {
   Serial.begin(115200);
-  Serial.println( "dc motor with encoder test" );
+  Serial.println( "\r\n\r\n**** Robotomy ****\r\n\r\n" );
   
-    /* Initialise the sensors */
+  /* Initialise the sensors */
   if(!accel.begin())
   {
     /* There was a problem detecting the ADXL345 ... check your connections */
@@ -196,7 +212,6 @@ void setup()
     while(1);
   }
 
-  
   // On the Due, set the PWM resolution to 12 bits.  Won't compile for other board types.  Also requires
   // arduino 1.5.6-r2 (BETA) or later.
   pwm_set_resolution( PWM_BITS );
@@ -216,13 +231,13 @@ void setup()
   }
   Serial.println(F("\nInitialized..."));
   
-  //uint16_t firmware = checkFirmwareVersion();
-  //if (firmware < 0x113) {
-  //  Serial.println(F("Wrong firmware version!"));
-  //  for(;;);
-  //} 
+  uint16_t firmware = checkFirmwareVersion();
+  if (firmware < 0x113) {
+    Serial.println(F("Wrong firmware version!"));
+    for(;;);
+  } 
   
-  //displayMACAddress();
+  displayMACAddress();
  
  
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
@@ -244,8 +259,36 @@ void setup()
     delay(1000);
   }
 
-  // Start up our net conole
-  int status = netConsole.begin();
+  #ifdef NET_CONSOLE_TCP
+    // Start up a TCP based console
+    uint32_t ip = 0xc0a80164;
+    Serial.print(F("192.168.1.100 -> "));
+    while  (ip  ==  0)  {
+      if  (!  cc3000.getHostByName("192.168.1.100", &ip))  {
+        Serial.println(F("Couldn't resolve!"));
+      }
+      delay(500);
+    }  
+    cc3000.printIPdotsRev(ip);
+
+    Serial.print(F("\r\nonnecting to net console\r\n" ));
+    netConsole = cc3000.connectTCP( ip, NET_CONSOLE_PORT );
+  
+    if(netConsole.connected()) 
+    {
+      netConsole.print(F("Connected\r\n"));
+      Serial.print(F("Connected\r\n" ));
+    }
+    else
+    {
+      Serial.print(F("Connection failed"));
+      while( 1 ) ; 
+    }
+
+  #else
+    // Start up our UDP net conole
+    int status = netConsole.begin();
+  #endif
   
 #endif
     
@@ -413,15 +456,15 @@ void loop()
     //
     // At this point, I'm pleased that the sensors are working and there are no obvious wiring problems.
     
-    double irDist = getIrDist( analogRead( ir1 ) );
-    
-
-
-    
-    stream.print( "IR=" );
-    stream.print( irDist );
-    stream.print( " in, " );
-    
+//    double irDist = getIrDist( analogRead( ir1 ) );
+//    
+//
+//
+//    
+//    stream.print( "IR=" );
+//    stream.print( irDist );
+//    stream.print( " in, " );
+//    
     // Disabling sonar for now.  The sensor that I have has a beam pattern that goes out at a 45 degree angle for
     // maybe 90 cm or so.  My robot is only about 8 inches high, so the sonar always seems to pick up the floor.
     // I need to mount it on a pole I think and use it as a long-view distance sensor, possibly on a servo.
@@ -429,26 +472,57 @@ void loop()
     //stream.print( sonarDist );
     //stream.print( " in, " );
     
-    sensors_event_t accel_event;
-    sensors_event_t mag_event;
-    sensors_vec_t   orientation;
-  
-    /* Read the accelerometer and magnetometer */
-    accel.getEvent(&accel_event);
-    mag.getEvent(&mag_event);
-  
-    /* Use the new fusionGetOrientation function to merge accel/mag data */  
-    if (dof.fusionGetOrientation(&accel_event, &mag_event, &orientation))
+//    sensors_event_t accel_event;
+//    sensors_event_t mag_event;
+//    sensors_vec_t   orientation;
+//  
+//    /* Read the accelerometer and magnetometer */
+//    accel.getEvent(&accel_event);
+//    mag.getEvent(&mag_event);
+//  
+//    /* Use the new fusionGetOrientation function to merge accel/mag data */  
+//    if (dof.fusionGetOrientation(&accel_event, &mag_event, &orientation))
+//    {
+//      /* 'orientation' should have valid .roll and .pitch fields */
+//      stream.print(F("Orientation: "));
+//      stream.print(orientation.roll);
+//      stream.print(F(" "));
+//      stream.print(orientation.pitch);
+//      stream.print(F(" "));
+//      stream.print(orientation.heading);
+//      stream.println(F(""));
+//    }      
+    
+    String status;
+    robot.getStatusString( status );
+    char status_array[ 100 ];
+    status.toCharArray( status_array, 100 );
+    Serial.print("status: " );
+    Serial.print( status_array );
+    Serial.println();
+    int num_chars;
+
+    if( netConsole.connected() )
     {
-      /* 'orientation' should have valid .roll and .pitch fields */
-      stream.print(F("Orientation: "));
-      stream.print(orientation.roll);
-      stream.print(F(" "));
-      stream.print(orientation.pitch);
-      stream.print(F(" "));
-      stream.print(orientation.heading);
-      stream.println(F(""));
-    }      
+      netConsole.fastrprint( status_array );
+      //netConsole.print( status_array );
+    }
+    else if( num_chars = netConsole.available() )
+    {
+      Serial.print( "netConsole has " );
+      Serial.print( num_chars );
+      Serial.println( " chars" );
+      // reuse the status_array buffer now that we're done with it
+      netConsole.read( status_array, num_chars );
+      Serial.print( "read in: \"" );
+      Serial.print( status_array );
+      Serial.println( "\"" );
+      
+    }
+    else
+    {
+      Serial.println( "net console disconnected" );
+    }
     
     elapsed = 0;
 
@@ -469,72 +543,72 @@ int simulate( double voltage )
   return adc_value;
 }
 
-double getIrDist( int sensor_value )
-{
-    
-   // the Sharp IR sensors output voltage will range from
-   // 3V when the obj is 4" / 10 cm away and will be 0.4V
-   // when the obj is 32" / 80 cm away.
-   
-   // We are using a 3.3V reference signal.  The ADCs on the
-   // Due are 12-bit ADCs, but are configured by default to be
-   // 10-bit ADCs to be compatible with prior Arduinos.  For
-   // now we're using the default, so our voltagle will range
-   // from 0 - 1024.
-   
-   // To calculate the equation to convert voltage to distance,
-   // we need to solve the following equations:
-   //
-   //    4" = m * 3.0V + b
-   //   32" = m * 0.4V + b
-   //
-   //   Solving the first equation for m:
-   //     m = ( 4" - b ) / 3V
-   //     m = 4/3  - b/3
-   //     m = 1.333333 - .333333 b
-   //   
-   //   Substituting into second equation:
-   //   32 = ( 1.33333 - .33333 b ) * 0.4 + b
-   //   32 = .53333333 - .13333 b + b
-   //   32 = .53333333 + .86667 b
-   //   31.46666666  = .86666667 b
-   //   36.3 = b
-
-   //   Solving for m using b:
-   //
-   //     m = 1.333333 - .333333 * 36.3
-   //     m = 1.333333 - 12.09999999
-   //     m = -10.76666667
-   //
-   //   Formula is thus:
-   //     y = -10.76666667 * x + 36.3
-   //
-   //   Or:
-   //
-   //     dist = -10.76666667 * voltage + 36.3   
-
-   double reference = 3.3; 
-   double resolution = 1024.0;
-   
-   double normal_value = sensor_value / resolution;
-   double voltage = normal_value * reference;
-   
-   Serial.print( "IR raw: " );
-   Serial.print( sensor_value );
-   Serial.print( ", " );
-   
-   Serial.print( "voltage: " );
-   Serial.print( voltage );
-   Serial.print( ", " );
-   
-   double dist = -10.76666667 * voltage + 36.3;
-   
-   Serial.print( "distance: " );
-   Serial.print( dist );
-   Serial.println( "" );   
-   
-   return dist;
-}
+//double getIrDist( int sensor_value )
+//{
+//    
+//   // the Sharp IR sensors output voltage will range from
+//   // 3V when the obj is 4" / 10 cm away and will be 0.4V
+//   // when the obj is 32" / 80 cm away.
+//   
+//   // We are using a 3.3V reference signal.  The ADCs on the
+//   // Due are 12-bit ADCs, but are configured by default to be
+//   // 10-bit ADCs to be compatible with prior Arduinos.  For
+//   // now we're using the default, so our voltagle will range
+//   // from 0 - 1024.
+//   
+//   // To calculate the equation to convert voltage to distance,
+//   // we need to solve the following equations:
+//   //
+//   //    4" = m * 3.0V + b
+//   //   32" = m * 0.4V + b
+//   //
+//   //   Solving the first equation for m:
+//   //     m = ( 4" - b ) / 3V
+//   //     m = 4/3  - b/3
+//   //     m = 1.333333 - .333333 b
+//   //   
+//   //   Substituting into second equation:
+//   //   32 = ( 1.33333 - .33333 b ) * 0.4 + b
+//   //   32 = .53333333 - .13333 b + b
+//   //   32 = .53333333 + .86667 b
+//   //   31.46666666  = .86666667 b
+//   //   36.3 = b
+//
+//   //   Solving for m using b:
+//   //
+//   //     m = 1.333333 - .333333 * 36.3
+//   //     m = 1.333333 - 12.09999999
+//   //     m = -10.76666667
+//   //
+//   //   Formula is thus:
+//   //     y = -10.76666667 * x + 36.3
+//   //
+//   //   Or:
+//   //
+//   //     dist = -10.76666667 * voltage + 36.3   
+//
+//   double reference = 3.3; 
+//   double resolution = 1024.0;
+//   
+//   double normal_value = sensor_value / resolution;
+//   double voltage = normal_value * reference;
+//   
+//   Serial.print( "IR raw: " );
+//   Serial.print( sensor_value );
+//   Serial.print( ", " );
+//   
+//   Serial.print( "voltage: " );
+//   Serial.print( voltage );
+//   Serial.print( ", " );
+//   
+//   double dist = -10.76666667 * voltage + 36.3;
+//   
+//   Serial.print( "distance: " );
+//   Serial.print( dist );
+//   Serial.println( "" );   
+//   
+//   return dist;
+//}
 
 
 double getSonarDist( int sensor_value )

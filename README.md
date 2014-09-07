@@ -50,6 +50,8 @@ future direction
 
 * may also get a pixy.. not sure it'll really help though beyond the rpi cam.
 
+* This would be pretty useful
+* https://github.com/synthetos/PiOCD/wiki/Using-a-Raspberry-Pi-as-a-JTAG-Dongle
 
 Motion Planning
 ===============

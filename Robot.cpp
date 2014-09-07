@@ -10,7 +10,8 @@ Robot::Robot(
     Adafruit_LSM303_Accel_Unified * accel,
     Adafruit_LSM303_Mag_Unified   * mag,
     Adafruit_L3GD20_Unified       * gyro,
-    Adafruit_9DOF                 * dof
+    Adafruit_9DOF                 * dof,
+    IRSensor                      * ir
   )
   :
   _mode( ROBOT_IDLE ),
@@ -20,14 +21,16 @@ Robot::Robot(
   _mag( mag ),
   _gyro( gyro ),
   _dof( dof ),
+  _ir( ir ),
   _stream( NULL )
 {
   // Note, intentionally using pointers here to refer to classes that have already been instantiated.  I don't actually
-  // want to create copies of the classes, since they refer to actual devices out there on my robot.  Creating copies
-  // of the classes (even indirectly) has generated a number of bizarre behaviors where referring to the instance in
-  // different areas of the code is in fact referring to different copies of the instance.
+  // want to create copies of the classes, since they refer to actual devices out there on my robot.  If I don't use
+  // pointers to the classes, then I'll be invoking copy constructors.  If copy constructors are invoked, then I'll 
+  // separate instances of what are truly a single global resources on the robot.  If there are separate instances, then
+  // they can get out of sync with each other.. it creates a lot of undesirable behaviors between this Robot class and
+  // the main file.  Sometimes, C++ features work against you... this is the way to work around them.
 }
-
 
 int Robot::reset()
 {
@@ -77,6 +80,52 @@ PlanningState planState = RESET;
 int Robot::autonomous_reset()
 {
   planState = RESET;
+}
+
+void Robot::getStatusString( String & msg )
+{
+  if( _mode == ROBOT_IDLE )
+  {
+    msg = String( "Mode=IDLE:" ); 
+  }
+  else if( _mode == ROBOT_DIAG )
+  {
+    msg = String( "Mode=DIAG:" );
+  }
+  else if( _mode == ROBOT_AUTO )
+  {
+    msg = String( "Mode=AUTO:" );
+  }
+  else
+  {
+    msg = String( "Mode=UNKNOWN:" );
+  }
+  
+  // Let's spit out a live view of the state of our sensors
+  sensors_event_t accel_event;
+  sensors_event_t mag_event;
+  sensors_vec_t   orientation;
+
+  /* Read the accelerometer and magnetometer */
+  _accel->getEvent(&accel_event);
+  _mag->getEvent(&mag_event);
+
+  /* Use the new fusionGetOrientation function to merge accel/mag data */  
+  if (_dof->fusionGetOrientation(&accel_event, &mag_event, &orientation))
+  {
+    /* 'orientation' should have valid .roll and .pitch fields */
+    msg += F("Roll=");
+    msg += orientation.roll;
+    msg += F(":Pitch=");
+    msg += orientation.pitch;
+    msg += F(":Heading=");
+    msg += orientation.heading;
+    msg += F(":");
+  }   
+  
+  msg += F("IR=");
+  msg += _ir->getDistance();
+  
 }
 
 int Robot::autonomous_tick_ocurred()

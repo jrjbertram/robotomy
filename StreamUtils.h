@@ -1,50 +1,9 @@
-#ifdef ENABLE_NET
 
-class ClientStream : public Stream {
-  public:
-  ClientStream( Adafruit_CC3000_ClientRef * client ) { _client = client; haveCachedData = false;}
-  
-  int available() { return _client->available(); }
-  size_t write( uint8_t data) { return _client->write( data ); }
-  int read(  ) { 
-     if( haveCachedData )
-     { 
-        haveCachedData = false;
-        return cachedData;
-     }
-     else
-     {
-       return _client->read( ); 
-     }
-  }
-  
-  int peek( ) {
-    if( haveCachedData )
-    {
-      Serial.print( "peek called when already have cached data.. need an array?" );
-      while( 1 ) ;
-    }
-    else
-    {
-      cachedData = read();
-      haveCachedData = 1;
-    }
-    return cachedData;
-  } 
-  
-  void flush() {}
+// I want to have a "seamless" console that works over the network or via the standard Arduino serial port interface.
+// This class allows you to take input and output from two different Streams, but presents a standard Stream API to
+// the user so that they're for the most part unaware that two Streams are involved.
 
-  
-  private:
-  Adafruit_CC3000_ClientRef * _client;
-  bool haveCachedData;
-  uint8_t cachedData;
-  
-};
-#endif
-
-// Class that will let me mux output on two streams
-class MuxStream : public Stream {
+class MuxStream : public Stream {  
   public:
   MuxStream( Stream * a, Stream * b ) { _a = a; _b = b;}
   MuxStream( Stream * a  ) { _a = a; _b = NULL;}  
