@@ -104,6 +104,10 @@ int Robot::autonomous_reset()
 
 void Robot::getStatusString( String & msg )
 {
+  // Generate a string that represents the state of our robot at this instant in time
+  // Note that due to limitations in the size of a network packet, I've had to
+  // abbreviate the field names down to something that will fit within 100 chars.
+  // Anything larger will currently crash the network device I'm using.
   if( _mode == ROBOT_IDLE )
   {
     msg = String( "Md=I" ); 
