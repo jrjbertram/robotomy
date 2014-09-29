@@ -25,9 +25,14 @@ Have been struggling with creating a UDP-based Stream class that allows me to us
 current status
 ==============
 
+* Having what looks like a ground loop between the arduino and the motor circuit.  Whenever I start the motors, the I2C heading sensor seems to "crash".  Requires a hard power reset to clear the state.  Have found that connecting different ground points in the circuit together seems to make things more stable.  Looking at circuit for issues, also considering iptoisolators.
+
 * motor control done, uses position based PID
 * distance sensors integrated
-* issue with UDP and the CC3000
+
+* Having all sorts of issues with the CC3000 (unrelated to the ground issues).  Finally have stable network status being pushed out over TCP to a host-side robot GUI which displays real-time status of the robot.  Major limitation of the CC3000 is that it hangs if you fill its outgoing FIFO, so I'm limited to ~100 character packets with large delays in between.  Pretty much useless as a true networking device.
+
+* THinking about dumping the CC3000 and instead bringing the raspi back as both a networking device and also as a way to reprogram the Arduino with the robot untethered.  Will be a big pain though, also will affect the battery life quite a bit.  Maybe once I get the ground loop issue sorted out.
 
 cleanup activities
 ==================
@@ -142,6 +147,8 @@ Some examples:
 Robot GUI
 ===============
 
+Have created a simple python-based gui that displays the real-time status of the robot.  This is useful for monitoring robot state while it is untethered from the host PC.
+
 Dependencies.  Was going to use PyQt, but Qt and PyQt are not well integrated
 with Ubuntu's package managers from what I'm reading.  So.. not worth the effort.
 
@@ -157,4 +164,5 @@ Verified installation via following line:
 $> python -c "import gui; print gui.__version__"
 0.9.4
 
+Overall, its been working great for what I need.  Will probably stick with it for a while.
 
