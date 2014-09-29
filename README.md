@@ -139,4 +139,22 @@ Some examples:
     The bezier curves I'm using are smooth, but they have sharp angles. 
     I'm okay with that for now I think.
 
-\     
+Robot GUI
+===============
+
+Dependencies.  Was going to use PyQt, but Qt and PyQt are not well integrated
+with Ubuntu's package managers from what I'm reading.  So.. not worth the effort.
+
+Instead, looking at gui2py, which is built on wxPython and wxWidgets.  Followed
+these instructions to get wxPython and wxWidgets installed on Ubuntu 14.10.  Wasn't
+"turnkey" but did get the job done.
+http://codelite.org/LiteEditor/WxWidgets30Binaries#toc2
+
+Followed these directions to get gui2py installed:
+https://code.google.com/p/gui2py/wiki/InstallationGuide
+
+Verified installation via following line:
+$> python -c "import gui; print gui.__version__"
+0.9.4
+
+

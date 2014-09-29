@@ -68,8 +68,11 @@ class Robot
     
     IRSensor                      * _ir;
     
+    sensors_vec_t   _orientation;
+    
     Stream * _stream;
 
+    int refresh_sensors();
     int autonomous_tick_ocurred();
     int autonomous_reset();
 

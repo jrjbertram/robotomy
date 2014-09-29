@@ -12,17 +12,18 @@ class MuxStream : public Stream {
   void operator=(const MuxStream& copy) { _a = copy._a; _b = copy._b; }
   
   int available() { 
+    int amount;
 
-    if( _a && _a->available() )
+    if( _a && ( amount = _a->available() ) )
     {
       //Serial.println( "mux a availalbe" );
-      return 1;
+      return amount;
     }
     
-    if( _b && _b->available() )
+    if( _b && ( amount = _b->available() ) )
     {
       //Serial.println( "mux b availalbe" );
-      return 1;
+      return amount;
     }
   
     return 0;  

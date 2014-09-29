@@ -45,20 +45,38 @@ int Robot::reset()
   this->autonomous_reset();
 }
 
+int Robot::refresh_sensors()
+{
+  sensors_event_t accel_event;
+  sensors_event_t mag_event;
+
+  /* Read the accelerometer and magnetometer */
+  _accel->getEvent(&accel_event);
+  _mag->getEvent(&mag_event);
+
+  /* Use the new fusionGetOrientation function to merge accel/mag data */  
+  if (_dof->fusionGetOrientation(&accel_event, &mag_event, &_orientation))
+  {
+  }
+}
+
 // This should get called each "loop" funciton iteration.  Depending on what mode we're in, different operations will be performed
 int Robot::tick_occurred()
 {
+  refresh_sensors();
   
   if( _mode == ROBOT_DIAG )
   {
-    PRINTLN( "managing motors" );
+    //PRINTLN( "managing motors" );
     if( _lft ) _lft->manage_motor();
     if( _rht)  _rht->manage_motor();
   }
   else if( _mode == ROBOT_AUTO )
   {
-    PRINT( "autononomous" );
+    //PRINT( "autononomous" );
     this->autonomous_tick_ocurred();
+    if( _lft ) _lft->manage_motor();
+    if( _rht)  _rht->manage_motor();    
   }
 }
 
@@ -72,6 +90,8 @@ typedef enum
 {
   RESET,
   INIT,
+  WANDER,
+  HIT,
   
 } PlanningState;
 
@@ -86,50 +106,108 @@ void Robot::getStatusString( String & msg )
 {
   if( _mode == ROBOT_IDLE )
   {
-    msg = String( "Mode=IDLE:" ); 
+    msg = String( "Md=I" ); 
   }
   else if( _mode == ROBOT_DIAG )
   {
-    msg = String( "Mode=DIAG:" );
+    msg = String( "Md=D" );
   }
   else if( _mode == ROBOT_AUTO )
   {
-    msg = String( "Mode=AUTO:" );
+    msg = String( "Md=A" );
   }
   else
   {
-    msg = String( "Mode=UNKNOWN:" );
+    msg = String( "Md=U" );
   }
-  
-  // Let's spit out a live view of the state of our sensors
-  sensors_event_t accel_event;
-  sensors_event_t mag_event;
-  sensors_vec_t   orientation;
 
-  /* Read the accelerometer and magnetometer */
-  _accel->getEvent(&accel_event);
-  _mag->getEvent(&mag_event);
-
-  /* Use the new fusionGetOrientation function to merge accel/mag data */  
-  if (_dof->fusionGetOrientation(&accel_event, &mag_event, &orientation))
+  switch( planState )
   {
-    /* 'orientation' should have valid .roll and .pitch fields */
-    msg += F("Roll=");
-    msg += orientation.roll;
-    msg += F(":Pitch=");
-    msg += orientation.pitch;
-    msg += F(":Heading=");
-    msg += orientation.heading;
-    msg += F(":");
-  }   
+    case RESET:
+      msg += ":Pl=R";
+      break;
+    case INIT:
+      msg += ":Pl=I";
+      break;
+    case WANDER:
+      msg += ":Pl=W";
+      break;
+    case HIT:
+      msg += ":Pl=H";
+      break;
+    default:
+      msg += ":Pl=U";
+      break;
+  }
+
+  // Let's spit out a live view of the state of our sensors
+  msg += F(":R=");
+  msg += _orientation.roll;
+  msg += F(":P=");
+  msg += _orientation.pitch;
+  msg += F(":Y=");
+  msg += _orientation.heading;
+   
   
-  msg += F("IR=");
+  msg += F(":IR=");
   msg += _ir->getDistance();
+  
+  msg += F(":Lf=");
+  msg += _lft->velocity();
+  msg += F(":Rt=");
+  msg += _rht->velocity();
+  msg += F(":Ld=");
+  msg += _lft->desired_position() - _lft->position();
+  msg += F(":Rd=");
+  msg += _rht->desired_position() - _rht->position();
   
 }
 
+
 int Robot::autonomous_tick_ocurred()
 {
-
+  if( planState == RESET )
+  {
+    planState = INIT;
+  }
+  else if( planState == INIT )
+  {
+    if( _orientation.heading > -30.0 && _orientation.heading < 30.0 )
+    {
+      planState = WANDER; // what's after init?
+    }
+    else
+    {
+      // Start going left until we hit a heading of approx 0 
+      _lft->set_desired_position( _lft->position() -5000 );
+      _rht->set_desired_position( _rht->position() +5000 );
+    }
+  }
+  else if( planState == WANDER )
+  {
+    if( _ir->getDistance() < 20 )
+    {
+      planState = HIT;
+    }
+    else  
+    {
+      // Start forward 
+      _lft->set_desired_position( _lft->position() +2000 );
+      _rht->set_desired_position( _rht->position() +2000 );
+    }
+  }
+  else if( planState == HIT )
+  {
+    if( _ir->getDistance() > 20 )
+    {
+      planState = WANDER;
+    }
+    else
+    {
+      // Start going left  
+      _lft->set_desired_position( _lft->position() -5000 );
+      _rht->set_desired_position( _rht->position() +5000 );
+    }
+  }
 }
 

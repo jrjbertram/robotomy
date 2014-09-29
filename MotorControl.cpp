@@ -5,8 +5,12 @@
 #include "due_pwm.h"
 #include "MotorControl.h"
 
-#define PRINT( msg )    if( _stream ) { _stream->print  ( msg ); }
-#define PRINTLN( msg )  if( _stream ) { _stream->println( msg ); }
+
+//#define PRINT( msg )    if( _stream ) { _stream->print  ( msg ); }
+//#define PRINTLN( msg )  if( _stream ) { _stream->println( msg ); }
+
+#define PRINT( msg )    
+#define PRINTLN( msg )  
 
 MotorControl::MotorControl(
       char * motor_name,
@@ -44,8 +48,8 @@ MotorControl::MotorControl(
   desiredPos = 0;
   currentDirection = 0;
   
-  lastPos = -1;
-  lastVel = -1;
+  lastPos = 0;
+  lastVel = 0;
   
   pidInput = 0;
   pidSetpoint = 0;
@@ -102,11 +106,14 @@ void MotorControl::operator=(const MotorControl& other)
 void MotorControl::set_desired_position( long newPosition )
 {
   desiredPos = (newPosition * inverted);
+  PRINT( name );
+  PRINT( "new position set to " );
+  PRINTLN( desiredPos );
 }
 
 void MotorControl::reset()
 {
-  desiredPos = currPos;
+  desiredPos = currPos = 0;
 }
 
 void MotorControl::set_kp( double new_kp )

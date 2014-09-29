@@ -175,7 +175,7 @@ Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof, &ir );
       UdpStream netConsole = UdpStream( 5005 );
   
       MuxStream stream = MuxStream( &netConsole, &Serial );
-  #else
+  #else  
       // For TCP, I don't have a stream class at this time.
       // The MuxStream idea might be dead.  Stream doesn't
       // seem to support a "fast" printf right now.
@@ -187,6 +187,9 @@ Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof, &ir );
   MuxStream stream = MuxStream( &Serial );
 #endif
 
+elapsedMillis elapsed;
+
+
 void setup()
 {
   Serial.begin(115200);
@@ -196,19 +199,19 @@ void setup()
   if(!accel.begin())
   {
     /* There was a problem detecting the ADXL345 ... check your connections */
-    Serial.println(F("Ooops, no LSM303 detected ... Check your wiring!"));
+    Serial.println(F("Ooops, no accel LSM303 detected ... Check your wiring!"));
     while(1);
   }
   if(!mag.begin())
   {
     /* There was a problem detecting the LSM303 ... check your connections */
-    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    Serial.println("Ooops, no mag LSM303 detected ... Check your wiring!");
     while(1);
   }
   if(!gyro.begin())
   {
     /* There was a problem detecting the L3GD20 ... check your connections */
-    Serial.print("Ooops, no L3GD20 detected ... Check your wiring or I2C ADDR!");
+    Serial.print("Ooops, no gyro L3GD20 detected ... Check your wiring or I2C ADDR!");
     while(1);
   }
 
@@ -293,12 +296,13 @@ void setup()
 #endif
     
   robot.setStream( &stream );
+  
+  elapsed = 0;
 }
 
 
-elapsedMillis elapsed;
-
 int counter = 0;
+
 
 void loop()
 {
@@ -398,12 +402,12 @@ void loop()
       case 'S':
       {
         robot.setMode( Robot::ROBOT_DIAG );
-        displayConnectionDetails();
+        //displayConnectionDetails();
       }
       break;   
       case 'A':
       {
-        stream.println( "Going autonomous.  Type X to reset." );
+        stream.println( "Going auomous.  Type X to reset." );
         robot.setMode( Robot::ROBOT_AUTO );
       }
       break;
@@ -445,7 +449,7 @@ void loop()
   robot.tick_occurred();
 
   
-  if( elapsed > 5000 )
+  if( elapsed > 500 )
   {
     // Need to convert these to a distance measurement at some point.  Right now just using raw analog input value.
     // Also eventually need these to gate any motor movement.  Should they cross below some threshold, I want them
@@ -496,7 +500,7 @@ void loop()
     String status;
     robot.getStatusString( status );
     char status_array[ 100 ];
-    status.toCharArray( status_array, 100 );
+    status.toCharArray( status_array, sizeof(status_array));
     Serial.print("status: " );
     Serial.print( status_array );
     Serial.println();
@@ -505,7 +509,6 @@ void loop()
     if( netConsole.connected() )
     {
       netConsole.fastrprint( status_array );
-      //netConsole.print( status_array );
     }
     else if( num_chars = netConsole.available() )
     {
@@ -525,6 +528,8 @@ void loop()
     }
     
     elapsed = 0;
+    
+    robot.setMode( Robot::ROBOT_AUTO );
 
   }
     

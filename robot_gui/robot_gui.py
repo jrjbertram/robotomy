@@ -1,22 +1,71 @@
 #!/usr/bin/env python
 
-"""
-A basic, multiclient 'chat server' using Python's select module
-with interrupt handling.
-
-Entering any line of input at the terminal will exit the server.
-"""
-
 import select
 import socket
 import sys
 import signal
-from communication import send, receive
+import netConsole
+import gui
+import thread
+import wx
 
 BUFSIZ = 1024
 
+# --- here goes your event handlers ---
 
-class ChatServer(object):
+# --- gui2py designer generated code starts ---
+
+with gui.Window(name='mywin', title=u'gui2py minimal app', resizable=True, 
+                height='496px', width='400px', image='', ):
+    gui.Image(name=u'robot_background', height='302', left='0', top='-6', 
+              width='363', fgcolor=u'#4C4C4C', filename=u'robot.png', )
+    gui.Label(name=u'ir_distance', height='17', left='170', top='120', 
+              width='60', bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', 
+              text=u'0 inches', )
+    gui.Label(name=u'heading', height='17', left='172', top='194', 
+              width='129', bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', 
+              text=u'0 degrees', )
+    gui.Label(name=u'mode', height='17', left='9', top='10', width='129', 
+              bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', text=u'IDLE', )
+    gui.Label(name=u'connstate', height='17', left='2', top='461', 
+              width='129', bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', 
+              text=u'waiting for connection...', )
+    gui.Label(name=u'left_vel', height='17', left='66', top='194', 
+              width='129', bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', text=u'0', )
+    gui.Label(name=u'right_vel', alignment='right', height='17', left='301', 
+              top='194', width='129', bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', 
+              text=u'0', )
+    gui.Label(name=u'plan', border='raised', height='17', left='10', top='34', 
+              width='0', bgcolor=u'#F2F1F0', fgcolor=u'#4C4C4C', text=u'', )
+
+# --- gui2py designer generated code ends ---
+
+mywin = gui.get("mywin")
+
+# assign your event handlers:
+
+mode_dict = { 'I' : "Idle", 'D': "Diagnostic", 'A': "Auto", 'U': "Unknown" }
+plan_dict = { 'R' : "Reset", 'I': "Init", 'W': "Wander", 'H': "Hit", 'U': "Unknown" }
+
+def parseMessage(msg):
+    #print "parsing message: %s" % msg
+    
+    if msg.startswith( "Md=" ):
+	    params=dict(e.split('=') for e in msg.split(':'))
+
+	    #print params
+	    #print "setting heading = ", params["Heading"]
+	    mywin['connstate'].text = "connected"
+	    mywin['mode'].text = mode_dict[ params["Md"] ]
+	    mywin['plan'].text = plan_dict[ params["Pl"] ]
+	    mywin['heading'].text = params["Y"]
+	    mywin['ir_distance'].text = params["IR"]
+	    mywin['left_vel'].text = params["Lf"]
+	    mywin['right_vel'].text = params["Rt"]
+	    #print "success"
+ 
+
+class netConsole:
     """ Simple chat server using select """
     
     def __init__(self, port=5005, backlog=5):
@@ -28,6 +77,7 @@ class ChatServer(object):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind(('',port))
+        self.server.setblocking(0)
         print 'Listening to port',port,'...'
         self.server.listen(backlog)
         # Trap keyboard interrupts
@@ -61,7 +111,7 @@ class ChatServer(object):
 
             try:
                 #print "calling select..."
-                inputready,outputready,exceptready = select.select(inputs, [], [])
+                inputready,outputready,exceptready = select.select(inputs, [], inputs)
                 #print "select returned\r\n"
                 #print "inputs: "
                 #print inputready
@@ -86,7 +136,9 @@ class ChatServer(object):
                     # Compute client name and send back
                     self.clients += 1
                     cname = 'client%d' % self.clients
-                    send(client, 'CLIENT: ' + str(address[0]))
+                    client.setblocking(0)
+                    #send(client, 'CLIENT: ' + str(address[0]))
+                    client.send('CLIENT: ' + str(address[0]))
                     inputs.append(client)
 
                     self.clientmap[client] = (address, cname)
@@ -117,11 +169,12 @@ class ChatServer(object):
                             # Send as new client's message...
                             msg = data
                             # Send data to all except ourselves
-                            print '\"%s\"' % msg
-                            for o in self.outputs:
-                                if o != s:
-                                    o.send(msg)
-                                    #send(o, msg)
+                            #print '%s' % msg
+                            #for o in self.outputs:
+                            #    if o != s:
+                            #        o.send(msg)
+                            #        #send(o, msg)
+                            wx.CallAfter( parseMessage, msg )
                         else:
                             print 'chatserver: %d hung up' % s.fileno()
                             self.clients -= 1
@@ -137,8 +190,13 @@ class ChatServer(object):
                                 #send(o, msg)
                                 
                     except socket.error, e:
+
+                        if hasattr( socket, 'fileno' ):
+				print 'chatserver: socket %d error: %s' % ( socket.fileno(), self.getname(socket))
+                        else:
+				print 'chatserver: socket ? error: %s' % ( self.getname(socket))
+
                         # Remove
-                        print 'chatserver: socket error %d: %s' % (socket.fileno(), self.getname(socket))
                         inputs.remove(s)
                         self.outputs.remove(s)
                         
@@ -147,6 +205,14 @@ class ChatServer(object):
         print "\r\nclosing server\r\n"
         self.server.close()
 
+
+#console = netConsole.netConsole()
+console = netConsole()
+
+
+
 if __name__ == "__main__":
-    ChatServer().serve()
+    mywin.show()    
+    thread.start_new( gui.main_loop, () )
+    console.serve()
 
