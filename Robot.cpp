@@ -108,6 +108,8 @@ void Robot::getStatusString( String & msg )
   // Note that due to limitations in the size of a network packet, I've had to
   // abbreviate the field names down to something that will fit within 100 chars.
   // Anything larger will currently crash the network device I'm using.
+  
+  // Note that any changes in these strings will require changes in the python GUI as well.
   if( _mode == ROBOT_IDLE )
   {
     msg = String( "Md=I" ); 
