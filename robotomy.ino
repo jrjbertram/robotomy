@@ -1,6 +1,6 @@
 
-#define ENABLE_NET
-#define NET_CONSOLE_TCP
+//#define ENABLE_NET
+//#define NET_CONSOLE_TCP
 
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
@@ -184,7 +184,7 @@ Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof, &ir );
       MuxStream stream = MuxStream( &Serial );
   #endif
 #else
-  MuxStream stream = MuxStream( &Serial );
+  MuxStream stream = MuxStream( &Serial, &Serial3 );
 #endif
 
 elapsedMillis elapsed;
@@ -193,26 +193,28 @@ elapsedMillis elapsed;
 void setup()
 {
   Serial.begin(115200);
+  Serial3.begin(115200);
   Serial.println( "\r\n\r\n**** Robotomy ****\r\n\r\n" );
+  Serial3.println( "\r\n\r\n**** Robotomy ****\r\n\r\n" );
   
   /* Initialise the sensors */
   if(!accel.begin())
   {
     /* There was a problem detecting the ADXL345 ... check your connections */
-    Serial.println(F("Ooops, no accel LSM303 detected ... Check your wiring!"));
-    while(1);
+    stream.println(F("Ooops, no accel LSM303 detected ... Check your wiring!"));
+    //while(1);
   }
   if(!mag.begin())
   {
     /* There was a problem detecting the LSM303 ... check your connections */
-    Serial.println("Ooops, no mag LSM303 detected ... Check your wiring!");
-    while(1);
+    stream.println("Ooops, no mag LSM303 detected ... Check your wiring!");
+    //while(1);
   }
   if(!gyro.begin())
   {
     /* There was a problem detecting the L3GD20 ... check your connections */
-    Serial.print("Ooops, no gyro L3GD20 detected ... Check your wiring or I2C ADDR!");
-    while(1);
+    stream.print("Ooops, no gyro L3GD20 detected ... Check your wiring or I2C ADDR!");
+    //while(1);
   }
 
   // On the Due, set the PWM resolution to 12 bits.  Won't compile for other board types.  Also requires
@@ -508,6 +510,7 @@ void loop()
     Serial.println();
     int num_chars;
 
+#ifdef NET_CONSOLE
     if( netConsole.connected() )
     {
       netConsole.fastrprint( status_array );
@@ -528,6 +531,7 @@ void loop()
     {
       Serial.println( "net console disconnected" );
     }
+#endif
     
     elapsed = 0;
     
