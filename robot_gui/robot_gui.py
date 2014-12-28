@@ -48,7 +48,7 @@ mode_dict = { 'I' : "Idle", 'D': "Diagnostic", 'A': "Auto", 'U': "Unknown" }
 plan_dict = { 'R' : "Reset", 'I': "Init", 'W': "Wander", 'H': "Hit", 'U': "Unknown" }
 
 def parseMessage(msg):
-    #print "parsing message: %s" % msg
+    print "parsing message: %s" % msg
     
     if msg.startswith( "Md=" ):
 	    params=dict(e.split('=') for e in msg.split(':'))

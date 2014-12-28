@@ -111,6 +111,16 @@ void MotorControl::set_desired_position( long newPosition )
   PRINTLN( desiredPos );
 }
 
+long MotorControl::desired_position()
+{
+  return desiredPos * inverted;
+}
+
+long MotorControl::position()
+{
+  return lastPos * inverted;
+}
+
 void MotorControl::reset()
 {
   desiredPos = currPos = 0;

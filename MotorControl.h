@@ -36,10 +36,10 @@ class MotorControl
     void reset();
     
     void set_desired_position( long newPosition );
-    long position() { return lastPos; }
+    long position();
     int velocity() { return lastVel; }
 
-    long desired_position() { return desiredPos; }
+    long desired_position();
     
     void manage_motor(); // call this each 'loop' iteration
     

@@ -163,9 +163,11 @@ void Robot::getStatusString( String & msg )
   msg += F(":Rt=");
   msg += _rht->velocity();
   msg += F(":Ld=");
-  msg += _lft->desired_position() - _lft->position();
+  //msg += _lft->desired_position() - _lft->position();
+  msg += _lft->desired_position();
   msg += F(":Rd=");
-  msg += _rht->desired_position() - _rht->position();
+  //msg += _rht->desired_position() - _rht->position();
+  msg += _rht->desired_position();
   
 }
 
@@ -185,12 +187,23 @@ int Robot::autonomous_tick_ocurred()
     else
     {
       // Start going left until we hit a heading of approx 0 
-      _lft->set_desired_position( _lft->position() -5000 );
-      _rht->set_desired_position( _rht->position() +5000 );
+      _lft->set_desired_position( _lft->position() -400 );
+      _rht->set_desired_position( _rht->position() +400 );
     }
   }
   else if( planState == WANDER )
   {
+//    Serial.print( "lft: " );
+//    Serial.print( _lft->position() );
+//    Serial.print( " (" );
+//    Serial.print( _lft->desired_position() );
+//    Serial.print( " )" );
+//    Serial.print( ", rht: " );
+//    Serial.print( _rht->position() );
+//    Serial.print( " (" );
+//    Serial.print( _rht->desired_position() );
+//    Serial.print( " )" );
+//    Serial.println( "" );
     if( _ir->getDistance() < 20 )
     {
       planState = HIT;
@@ -198,8 +211,21 @@ int Robot::autonomous_tick_ocurred()
     else  
     {
       // Start forward 
-      _lft->set_desired_position( _lft->position() +2000 );
-      _rht->set_desired_position( _rht->position() +2000 );
+      _lft->set_desired_position( _lft->position() +500 );
+      _rht->set_desired_position( _rht->position() +500 );
+
+//    Serial.print( "    set to: " );
+//    Serial.print( "lft: " );
+//    Serial.print( _lft->position() );
+//    Serial.print( " (" );
+//    Serial.print( _lft->desired_position() );
+//    Serial.print( " )" );
+//    Serial.print( ", rht: " );
+//    Serial.print( _rht->position() );
+//    Serial.print( " (" );
+//    Serial.print( _rht->desired_position() );
+//    Serial.print( " )" );
+//    Serial.println( "" );
     }
   }
   else if( planState == HIT )
@@ -210,9 +236,9 @@ int Robot::autonomous_tick_ocurred()
     }
     else
     {
-      // Start going left  
-      _lft->set_desired_position( _lft->position() -5000 );
-      _rht->set_desired_position( _rht->position() +5000 );
+      // Start going right
+      _lft->set_desired_position( _lft->position() +300 );
+      _rht->set_desired_position( _rht->position() -300 );
     }
   }
 }

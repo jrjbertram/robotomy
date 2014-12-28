@@ -264,10 +264,11 @@ void setup()
 
   #ifdef NET_CONSOLE_TCP
     // Start up a TCP based console
-    uint32_t ip = 0xc0a80164;
-    Serial.print(F("192.168.1.100 -> "));
+    //uint32_t ip = 0xc0a80164;  // .100
+    uint32_t ip = 0xc0a80170; // .112
+    Serial.print(F("192.168.1.xxx -> "));
     while  (ip  ==  0)  {
-      if  (!  cc3000.getHostByName("192.168.1.100", &ip))  {
+      if  (!  cc3000.getHostByName("192.168.1.112", &ip))  {
         Serial.println(F("Couldn't resolve!"));
       }
       delay(500);
@@ -395,6 +396,7 @@ void loop()
       case 'X':
       {
         robot.reset();
+        robot.setMode( Robot::ROBOT_DIAG );
         stream.println( "Robot is reset." );
 
       }
