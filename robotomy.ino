@@ -1,7 +1,4 @@
 
-//#define ENABLE_NET
-//#define NET_CONSOLE_TCP
-
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303_U.h>
@@ -25,13 +22,6 @@ Adafruit_9DOF                 dof   = Adafruit_9DOF();
 // Sensors
 #include "IRSensor.h"
 
-#ifdef ENABLE_NET
-// Wifi shield
-#include <ccspi.h>
-#include <Adafruit_CC3000.h>
-#include <Adafruit_CC3000_Server.h>
-#include <SPI.h>  // neede for some reason here too
-#endif
 
 // Elapsed time measurement
 #include "elapsedMillis.h"
@@ -62,13 +52,6 @@ Adafruit_9DOF                 dof   = Adafruit_9DOF();
 //         * SPI MISO - pin 12                           -- I believe these are hard wired
 //         * SPI MOSI - pin 11                           -- I believe these are hard wired
 
-#ifdef ENABLE_NET
-#define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
-#define ADAFRUIT_CC3000_VBAT  5  // Can be any pin
-#define ADAFRUIT_CC3000_CS    10 // Can be any pin
-// Use hardware SPI for the remaining pins
-// On an UNO, SCK = 13, MISO = 12, and MOSI = 11
-#endif
 
 //   - On Due, pins 6, 7, 8, and 9 can be used for special high-frequency PWM signals.  Normally the frequency is 500Hz I believe,
 //     but when driving motors, at low duty cycles this creates an audible squeal.  Upping the PWM frequency above 20KHz puts it
@@ -113,21 +96,6 @@ int rhtQb = 25;
 int ir1 = A0;
 int sonar1 = A1;
 
-
-
-#ifdef ENABLE_NET
-Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ, ADAFRUIT_CC3000_VBAT,
-                                         SPI_CLOCK_DIVIDER); // you can change this clock speed
-#include "wifi_credentials.h"  // defines WLAN_SSID and WLAN_PASS strings
-
-// Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
-#define WLAN_SECURITY   WLAN_SEC_WPA2
-
-#define NET_CONSOLE_PORT       5005    // What TCP port will net console work on
-
-#endif
-
-
 #define PWM_BITS        12     // On Due, you can change the resolution from 8 bits (0-255) to 12 bits (0-4095).
 #define PWM_RESOLUTION  4095   // 
 #define PWM_FREQUENCY   20000  // In Hz.  Frequency of the overall PWM period... not the duty cycle
@@ -166,26 +134,7 @@ IRSensor ir = IRSensor( ir1 );
 Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof, &ir );
 
 
-
-#ifdef ENABLE_NET
-
-  #ifndef NET_CONSOLE_TCP
-      // Use UDP
-      #include "UdpStream.h"
-      UdpStream netConsole = UdpStream( 5005 );
-  
-      MuxStream stream = MuxStream( &netConsole, &Serial );
-  #else  
-      // For TCP, I don't have a stream class at this time.
-      // The MuxStream idea might be dead.  Stream doesn't
-      // seem to support a "fast" printf right now.
-
-      Adafruit_CC3000_Client netConsole;
-      MuxStream stream = MuxStream( &Serial );
-  #endif
-#else
-  MuxStream stream = MuxStream( &Serial, &Serial3 );
-#endif
+MuxStream stream = MuxStream( &Serial, &Serial3 );
 
 elapsedMillis elapsed;
 
@@ -224,79 +173,6 @@ void setup()
   pwm_setup( lftEn, PWM_FREQUENCY, 1 );
   pwm_setup( rhtEn, PWM_FREQUENCY, 1 ); 
   
-#ifdef ENABLE_NET
-  displayDriverMode();
-  //Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
-
-  Serial.println(F("\nInitializing wifi..."));
-  if (!cc3000.begin())
-  {
-    Serial.println(F("Couldn't begin()! Check your wiring?"));
-    while(1);
-  }
-  Serial.println(F("\nInitialized..."));
-  
-  uint16_t firmware = checkFirmwareVersion();
-  if (firmware < 0x113) {
-    Serial.println(F("Wrong firmware version!"));
-    for(;;);
-  } 
-  
-  displayMACAddress();
- 
- 
-  Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
-  if (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) {
-    Serial.println(F("Failed!"));
-    while(1);
-  }
-   
-  Serial.println(F("Connected!"));
-  
-  Serial.println(F("Request DHCP"));
-  while (!cc3000.checkDHCP())
-  {
-    delay(100); // ToDo: Insert a DHCP timeout!
-  }  
-
-  /* Display the IP address DNS, Gateway, etc. */  
-  while (! displayConnectionDetails()) {
-    delay(1000);
-  }
-
-  #ifdef NET_CONSOLE_TCP
-    // Start up a TCP based console
-    //uint32_t ip = 0xc0a80164;  // .100
-    uint32_t ip = 0xc0a80170; // .112
-    Serial.print(F("192.168.1.xxx -> "));
-    while  (ip  ==  0)  {
-      if  (!  cc3000.getHostByName("192.168.1.112", &ip))  {
-        Serial.println(F("Couldn't resolve!"));
-      }
-      delay(500);
-    }  
-    cc3000.printIPdotsRev(ip);
-
-    Serial.print(F("\r\nonnecting to net console\r\n" ));
-    netConsole = cc3000.connectTCP( ip, NET_CONSOLE_PORT );
-  
-    if(netConsole.connected()) 
-    {
-      netConsole.print(F("Connected\r\n"));
-      Serial.print(F("Connected\r\n" ));
-    }
-    else
-    {
-      Serial.print(F("Connection failed"));
-      while( 1 ) ; 
-    }
-
-  #else
-    // Start up our UDP net conole
-    int status = netConsole.begin();
-  #endif
-  
-#endif
     
   robot.setStream( &stream );
   
@@ -510,29 +386,7 @@ void loop()
     Serial.println();
     int num_chars;
 
-#ifdef NET_CONSOLE
-    if( netConsole.connected() )
-    {
-      netConsole.fastrprint( status_array );
-    }
-    else if( num_chars = netConsole.available() )
-    {
-      Serial.print( "netConsole has " );
-      Serial.print( num_chars );
-      Serial.println( " chars" );
-      // reuse the status_array buffer now that we're done with it
-      netConsole.read( status_array, num_chars );
-      Serial.print( "read in: \"" );
-      Serial.print( status_array );
-      Serial.println( "\"" );
-      
-    }
-    else
-    {
-      Serial.println( "net console disconnected" );
-    }
-#endif
-    
+
     elapsed = 0;
     
     robot.setMode( Robot::ROBOT_AUTO );
@@ -649,97 +503,4 @@ double getSonarDist( int sensor_value )
    return dist;
 }
 
-
-#ifdef ENABLE_NET
-/**************************************************************************/
-/*!
-    @brief  Displays the driver mode (tiny of normal), and the buffer
-            size if tiny mode is not being used
-
-    @note   The buffer size and driver mode are defined in cc3000_common.h
-*/
-/**************************************************************************/
-void displayDriverMode(void)
-{
-  #ifdef CC3000_TINY_DRIVER
-    Serial.println(F("CC3000 is configure in 'Tiny' mode"));
-  #else
-    Serial.print(F("RX Buffer : "));
-    Serial.print(CC3000_RX_BUFFER_SIZE);
-    Serial.println(F(" bytes"));
-    Serial.print(F("TX Buffer : "));
-    Serial.print(CC3000_TX_BUFFER_SIZE);
-    Serial.println(F(" bytes"));
-  #endif
-}
-
-/**************************************************************************/
-/*!
-    @brief  Tries to read the CC3000's internal firmware patch ID
-*/
-/**************************************************************************/
-uint16_t checkFirmwareVersion(void)
-{
-  uint8_t major, minor;
-  uint16_t version;
-  
-#ifndef CC3000_TINY_DRIVER  
-  if(!cc3000.getFirmwareVersion(&major, &minor))
-  {
-    Serial.println(F("Unable to retrieve the firmware version!\r\n"));
-    version = 0;
-  }
-  else
-  {
-    Serial.print(F("Firmware V. : "));
-    Serial.print(major); Serial.print(F(".")); Serial.println(minor);
-    version = major; version <<= 8; version |= minor;
-  }
-#endif
-  return version;
-}
-
-/**************************************************************************/
-/*!
-    @brief  Tries to read the 6-byte MAC address of the CC3000 module
-*/
-/**************************************************************************/
-void displayMACAddress(void)
-{
-  uint8_t macAddress[6];
-  
-  if(!cc3000.getMacAddress(macAddress))
-  {
-    Serial.println(F("Unable to retrieve MAC Address!\r\n"));
-  }
-  else
-  {
-    Serial.print(F("MAC Address : "));
-    cc3000.printHex((byte*)&macAddress, 6);
-  }
-}
-
-
-bool displayConnectionDetails(void)
-{
-  uint32_t ipAddress, netmask, gateway, dhcpserv, dnsserv;
-  
-  if(!cc3000.getIPAddress(&ipAddress, &netmask, &gateway, &dhcpserv, &dnsserv))
-  {
-    Serial.println(F("Unable to retrieve the IP Address!\r\n"));
-    return false;
-  }
-  else
-  {
-    Serial.print(F("\nIP Addr: ")); cc3000.printIPdotsRev(ipAddress);
-    Serial.print(F("\nNetmask: ")); cc3000.printIPdotsRev(netmask);
-    Serial.print(F("\nGateway: ")); cc3000.printIPdotsRev(gateway);
-    Serial.print(F("\nDHCPsrv: ")); cc3000.printIPdotsRev(dhcpserv);
-    Serial.print(F("\nDNSserv: ")); cc3000.printIPdotsRev(dnsserv);
-    Serial.println();
-    return true;
-  }
-}
-
-#endif
 
