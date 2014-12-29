@@ -143,8 +143,8 @@ void setup()
 {
   Serial.begin(115200);
   Serial3.begin(115200);
-  Serial.println( "\r\n\r\n**** Robotomy ****\r\n\r\n" );
-  Serial3.println( "\r\n\r\n**** Robotomy ****\r\n\r\n" );
+  
+  stream.println( "\r\n\r\n**** Robotomy ****\r\n\r\n" );
   
   /* Initialise the sensors */
   if(!accel.begin())
@@ -381,10 +381,9 @@ void loop()
     robot.getStatusString( status );
     char status_array[ 100 ];
     status.toCharArray( status_array, sizeof(status_array));
-    Serial.print("status: " );
-    Serial.print( status_array );
-    Serial.println();
-    int num_chars;
+    //stream.print("status: " );
+    stream.print( status_array );
+    stream.println();
 
 
     elapsed = 0;
@@ -458,19 +457,19 @@ int simulate( double voltage )
 //   double normal_value = sensor_value / resolution;
 //   double voltage = normal_value * reference;
 //   
-//   Serial.print( "IR raw: " );
-//   Serial.print( sensor_value );
-//   Serial.print( ", " );
+//   stream.print( "IR raw: " );
+//   stream.print( sensor_value );
+//   stream.print( ", " );
 //   
-//   Serial.print( "voltage: " );
-//   Serial.print( voltage );
-//   Serial.print( ", " );
+//   stream.print( "voltage: " );
+//   stream.print( voltage );
+//   stream.print( ", " );
 //   
 //   double dist = -10.76666667 * voltage + 36.3;
 //   
-//   Serial.print( "distance: " );
-//   Serial.print( dist );
-//   Serial.println( "" );   
+//   stream.print( "distance: " );
+//   stream.print( dist );
+//   stream.println( "" );   
 //   
 //   return dist;
 //}
