@@ -8,6 +8,10 @@ import netConsole
 import gui
 import thread
 import wx
+import struct
+
+GROUP = '224.0.2.0' 
+PORT = 5005
 
 BUFSIZ = 1024
 
@@ -63,23 +67,32 @@ def parseMessage(msg):
 	    mywin['left_vel'].text = params["Lf"]
 	    mywin['right_vel'].text = params["Rt"]
 	    #print "success"
- 
+
 
 class netConsole:
     """ Simple chat server using select """
     
-    def __init__(self, port=5005, backlog=5):
+    def __init__(self, port=PORT, backlog=5):
         self.clients = 0
         # Client map
         self.clientmap = {}
         # Output socket list
         self.outputs = []
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind(('',port))
         self.server.setblocking(0)
-        print 'Listening to port',port,'...'
-        self.server.listen(backlog)
+        # Get multicast group info
+        addrinfo = socket.getaddrinfo(GROUP, None)[0]
+        group_bin = socket.inet_pton(addrinfo[0], addrinfo[4][0])
+        # Join group
+        mreq = group_bin + struct.pack('=I', socket.INADDR_ANY)
+        self.server.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+
+
+#        print 'Listening to port',port,'...'
+#        self.server.listen(backlog)
         # Trap keyboard interrupts
         signal.signal(signal.SIGINT, self.sighandler)
         
@@ -129,29 +142,30 @@ class netConsole:
 
             for s in inputready:
 
-                if s == self.server:
-                    # handle the server socket
-                    client, address = self.server.accept()
-                    print 'chatserver: got connection %d from %s' % (client.fileno(), address)
-                    # Compute client name and send back
-                    self.clients += 1
-                    cname = 'client%d' % self.clients
-                    client.setblocking(0)
-                    #send(client, 'CLIENT: ' + str(address[0]))
-                    client.send('CLIENT: ' + str(address[0]))
-                    inputs.append(client)
-
-                    self.clientmap[client] = (address, cname)
-                    # Send joining information to other clients
-                    msg = '\n(Connected: New client (%d) from %s)' % (self.clients, self.getname(client))
-                    print '%s' % msg
-                    for o in self.outputs:
-                        o.send(msg)
-                        #send(o, msg)
-                    
-                    self.outputs.append(client)
-
-                elif s == sys.stdin:
+#                if s == self.server:
+#                    # handle the server socket
+#                    client, address = self.server.accept()
+#                    print 'chatserver: got connection %d from %s' % (client.fileno(), address)
+#                    # Compute client name and send back
+#                    self.clients += 1
+#                    cname = 'client%d' % self.clients
+#                    client.setblocking(0)
+#                    #send(client, 'CLIENT: ' + str(address[0]))
+#                    client.send('CLIENT: ' + str(address[0]))
+#                    inputs.append(client)
+#
+#                    self.clientmap[client] = (address, cname)
+#                    # Send joining information to other clients
+#                    msg = '\n(Connected: New client (%d) from %s)' % (self.clients, self.getname(client))
+#                    print '%s' % msg
+#                    for o in self.outputs:
+#                        o.send(msg)
+#                        #send(o, msg)
+#                    
+#                    self.outputs.append(client)
+#
+#                elif s == sys.stdin:
+                if s == sys.stdin:
                     # handle standard input
                     msg = sys.stdin.readline()
                     print "sending \"%s\"" % msg
