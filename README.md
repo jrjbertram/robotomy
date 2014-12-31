@@ -3,36 +3,30 @@ robotomy
 
 Repo for my home-brewed robot.
 
-design
-======
+architecture
+============
 
-Robot was originally based on rasperry pi, but I found that it wasn't quite as responsive and deterministic as I wanted.
+My robot uses an Arduino Due to perform fine-grained control functions like motor control and management, object detection, position estimation, and other low-level sensor management functionality.  These functions are best suited for the C/C++-only microcontroller environment provided by the Arduino.  
 
-Also, originally, I was using a pair of stepper motors, but the particular motors I used were very noisy and didn't quite give me the smooth motion I was looking for.  Part of the issue was also that I was using an I2C-based device to turn on and off the signals to my h-bridge, so the I2C accesses were probably to slow, and the timing of which coils were activated when within the stepper motor were probably giving me the poor response.
+It also uses a Raspberry Pi to perform high-level functions such as motion planning, ethernet interfacing.  These functions are best suited for the full Linux environment available on the Raspberry Pi.
 
-From there, I decided to move the motor control to an arduino, and got better results with the stepper motors.  I at least got smooth, fast motion with the arduino, but the stepper motors were still too loud.
-
-I switched over to some metal gearmotors with encoders, and rewrote the arduino code to drive these motors.  Driving the motors was easy, and it wasn't very hard to get the Arduino Encoder library integrated in.  From there I integrated in the PID library, and spent a little time tuning the PID parameters so that performance was reasonable.
+The Raspberry Pi and the Arduino Due are connected via serial port.  The raspi sends commands over the serial link, and the arduino sends status updates back to the raspi.
 
 At this point, I'm putting the code up on github in case it helps others in some way.
 
-Have also integrated in IR and Sonar sensors and have lately been integrating against the AdaFruit CC3000 Ethernet board and the 9 degree-of-freedom AdaFruit sensor module for orientation.
+lessons learned
+===============
 
-Have been lately been breaking the code up into classes to make it a little more modular.  
+Originally, I had started with a Raspberry Pi only and tried performing all of my IO with only the raspi.  However, the raspi has a pretty limited number of pins, which forced me to try to drive my stepper motors via an I2C-based PWM breakout board (which in turn was hooked up to an H-bridge to actually drive the motors).  I2C was a bottleneck though... the PWM breakout board was more intented for applications like controlling banks of LEDs where the I2C bottleneck is less of an issue.  This drove me to look for something that had a higher number of discretes which would give better low-level performance so that I did not have to use I2C, and I settled on an Arduino Due.
 
-Have been struggling with creating a UDP-based Stream class that allows me to use the familiar Stream class's API.  It is looking like this is due to a known TI issue with version 1.13 of their firmware, but still root causing.  Have also developed a MuxStream class that allows you to seamlessly read and write to two Streams.. makes it handy to use both the UdpStream and the Serial as a unified console.
+The Arduino Due worked great for interfacing with my H-bridge circuitry and my motor's quadrature encoders, as it has many pins.  (The Arduino Uno has more pins than a Raspberry Pi, but a limited number of interrupt pins.  I used a Due as it has more interrupt pins.)
 
-current status
-==============
+For a long time, I wasted a few months trying to get an Adafruit CC3000 ethernet shield working well with the Arduino.  I got basic functionality working, but found that the CC3000 is so limited in what it supports that it ended up causing more problems than it solved.  I'd highly recommend not purchasing that card... the primary problems were that you are limited to very small packet sizes (~100 bytes), and if you attempt to send packets too often such that no space is left within the CC3000's buffers, I found that it would just hang.  
 
-* Having what looks like a ground loop between the arduino and the motor circuit.  Whenever I start the motors, the I2C heading sensor seems to "crash".  Requires a hard power reset to clear the state.  Have found that connecting different ground points in the circuit together seems to make things more stable.  Looking at circuit for issues, also considering iptoisolators.
+Even once I worked around all the limitations, I found that it really wasn't an effective way to develop once you "untether" the robot, as every time I wanted to update my Arduino environment, I had to hook back up my USB cable anyway.  The Arduino IDE environment is also a little cumbersome once you reach more than 5 or 10 files in your project...  so long story short, adding in a Raspberry Pi with a usb-based wifi dongle provides a lot of benefits once the Arduino development is stable.  This will let me develop the remaining high-level functionality by ssh'ing into my raspi and updating the robot logic (e.g., python scripts) without a long compile and programming cycle. 
 
-* motor control done, uses position based PID
-* distance sensors integrated
-
-* Having all sorts of issues with the CC3000 (unrelated to the ground issues).  Finally have stable network status being pushed out over TCP to a host-side robot GUI which displays real-time status of the robot.  Major limitation of the CC3000 is that it hangs if you fill its outgoing FIFO, so I'm limited to ~100 character packets with large delays in between.  Pretty much useless as a true networking device.
-
-* THinking about dumping the CC3000 and instead bringing the raspi back as both a networking device and also as a way to reprogram the Arduino with the robot untethered.  Will be a big pain though, also will affect the battery life quite a bit.  Maybe once I get the ground loop issue sorted out.
+I'd like to eventually use the raspi to program the arduino, providing me with true "tetherless" operation:
+* https://github.com/synthetos/PiOCD/wiki/Using-a-Raspberry-Pi-as-a-JTAG-Dongle
 
 cleanup activities
 ==================
@@ -43,8 +37,6 @@ cleanup activities
 future direction
 ================
 
-* hook up to raspberry pi for wireless access?  results with the CC3000 have been pretty poor so far
-   - I want to eventually use the raspberry pi for motion planning and computer vision (obstacle detection and avoidance)
 * the other thing to figure out is the motion planning math for this 
   robot.
     - Have it modeled in HTML
