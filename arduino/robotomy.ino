@@ -379,7 +379,7 @@ void loop()
     
     String status;
     robot.getStatusString( status );
-    char status_array[ 100 ];
+    char status_array[ 1024 ];
     status.toCharArray( status_array, sizeof(status_array));
     //stream.print("status: " );
     stream.print( status_array );

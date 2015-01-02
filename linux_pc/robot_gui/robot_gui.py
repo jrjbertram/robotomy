@@ -48,24 +48,21 @@ mywin = gui.get("mywin")
 
 # assign your event handlers:
 
-mode_dict = { 'I' : "Idle", 'D': "Diagnostic", 'A': "Auto", 'U': "Unknown" }
-plan_dict = { 'R' : "Reset", 'I': "Init", 'W': "Wander", 'H': "Hit", 'U': "Unknown" }
-
 def parseMessage(msg):
     print "parsing message: %s" % msg
 
-    if msg.startswith( "Md=" ):
+    if msg.startswith( "Mode=" ):
 	    params=dict(e.split('=') for e in msg.split(':'))
 
 	    #print params
 	    #print "setting heading = ", params["Heading"]
 	    mywin['connstate'].text = "connected"
-	    mywin['mode'].text = mode_dict[ params["Md"] ]
-	    mywin['plan'].text = plan_dict[ params["Pl"] ]
-	    mywin['heading'].text = params["Y"]
+	    mywin['mode'].text = params["Mode"] 
+	    mywin['plan'].text = params["Plan"]
+	    mywin['heading'].text = params["Yaw"]
 	    mywin['ir_distance'].text = params["IR"]
-	    mywin['left_vel'].text = params["Lf"]
-	    mywin['right_vel'].text = params["Rt"]
+	    mywin['left_vel'].text = params["Left"]
+	    mywin['right_vel'].text = params["Right"]
 	    #print "success"
 
 
