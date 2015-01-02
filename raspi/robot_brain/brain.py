@@ -5,23 +5,23 @@ import time
 import struct
 import socket
 import sys
-import status
+import visualization
 
 import spinalcord
 
 
 def brain():
 
-    stat = status.Status()
+    viz = vizualization.Status()
     spinal= spinalcord.SpinalCord()
 
     while True:
         arduinoState = spinal.GetStatus()
-        stat.SendStatus( arduinoState )
 
-        print "Mode: " + spinal.state["Mode"]
+        print "Mode: " + spinal.State("Mode")
 
 
+        viz.SendStatus( arduinoState )
         # Allow a rate of approx 10 times per second
         time.sleep(.1)
 
