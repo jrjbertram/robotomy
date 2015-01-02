@@ -112,60 +112,60 @@ void Robot::getStatusString( String & msg )
   // Note that any changes in these strings will require changes in the python GUI as well.
   if( _mode == ROBOT_IDLE )
   {
-    msg = String( "Md=I" ); 
+    msg = String( "Mode=Idle" ); 
   }
   else if( _mode == ROBOT_DIAG )
   {
-    msg = String( "Md=D" );
+    msg = String( "Mode=Diag" );
   }
   else if( _mode == ROBOT_AUTO )
   {
-    msg = String( "Md=A" );
+    msg = String( "Mode=Auto" );
   }
   else
   {
-    msg = String( "Md=U" );
+    msg = String( "Mode=Unknown" );
   }
 
   switch( planState )
   {
     case RESET:
-      msg += ":Pl=R";
+      msg += ":Plan=Reset";
       break;
     case INIT:
-      msg += ":Pl=I";
+      msg += ":Plan=Init";
       break;
     case WANDER:
-      msg += ":Pl=W";
+      msg += ":Plan=Wander";
       break;
     case HIT:
-      msg += ":Pl=H";
+      msg += ":Plan=Hit";
       break;
     default:
-      msg += ":Pl=U";
+      msg += ":Plan=Unknown";
       break;
   }
 
   // Let's spit out a live view of the state of our sensors
-  msg += F(":R=");
+  msg += F(":Roll=");
   msg += _orientation.roll;
-  msg += F(":P=");
+  msg += F(":Pitch=");
   msg += _orientation.pitch;
-  msg += F(":Y=");
+  msg += F(":Yaw=");
   msg += _orientation.heading;
    
   
   msg += F(":IR=");
   msg += _ir->getDistance();
   
-  msg += F(":Lf=");
+  msg += F(":Left=");
   msg += _lft->velocity();
-  msg += F(":Rt=");
+  msg += F(":Right=");
   msg += _rht->velocity();
-  msg += F(":Ld=");
+  msg += F(":LeftDesired=");
   //msg += _lft->desired_position() - _lft->position();
   msg += _lft->desired_position();
-  msg += F(":Rd=");
+  msg += F(":RightDesired=");
   //msg += _rht->desired_position() - _rht->position();
   msg += _rht->desired_position();
   
