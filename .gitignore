@@ -1,1 +1,4 @@
 wifi_credentials.h
+*.pyc
+*~
+*bak
