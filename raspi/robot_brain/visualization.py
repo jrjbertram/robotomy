@@ -1,3 +1,6 @@
+# Send status over the network to a visualization script.  Packets are sent via
+# UDP to a multicast address so that no connection has to be made.
+
 import socket
 import sys
 import struct

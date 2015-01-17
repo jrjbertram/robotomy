@@ -1,3 +1,6 @@
+# Talks over serial port to the arduino, which acts like the "spinal cord" in
+# system by taking care of the low level details for our raspi "brain".
+
 import sys
 
 TTYDEV = "/dev/ttyAMA0"
