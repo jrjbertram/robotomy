@@ -14,6 +14,44 @@ The Raspberry Pi and the Arduino Due are connected via serial port.  The raspi s
 
 At this point, I'm putting the code up on github in case it helps others in some way.
 
+interface description
+=====================
+
+Interface between the arduino and raspberry pi is serial port at 115200.  Serial3 port on arduino connected to ttyAMA0 on raspi.
+
+Arduino periodically sends status messages over serial in following format.  This format is very simple to parse in python using "split" function, and will allow me great flexibility in adding new status params as needed.
+Param1=value1:Param2=value2:Param3=value3
+
+Status parameter descriptions:
+-----------------------
+
+Controller state params:
+* Mode:
+** Auto - Fully autonomous, actively following current command from raspi.
+** Diag - In diagnostic mode... currently not actually used.
+** Idle - Arduino is idle, reporting status but not actively driving around. 
+
+*Plan:
+** Reset - No plan currently loaded, not actively doing anything.
+** Init - Legacy: Plan in "init" mode, will seek to magnetic heading of zero, then switches to Wander.
+** Wander - Legacy: Drives around until sensors indiciate an obstacle collision.
+** Hit - Legacy: Rotates around until obstacle collision indication clears.  Once clear goes back to wander.
+
+Orientation params:
+* Roll - degrees, 0 is level (I think).. currently unused.
+* Pitch - degrees, 0 is level (I think).. currently unused.
+* Yaw - degrees, 0 is magnetic north (I think)
+
+Obstacle sensors:
+* IR - distance to obstacle in inches (I think)
+
+Motors:
+* Left - Velocity of left motor (unit unknown)
+* Right - Velocity of right motor (unit unknown)
+* LeftDesitred - Desired encoder position of left motor
+* RightDesired - Desired encoder position of right motor
+
+
 lessons learned
 ===============
 
