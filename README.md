@@ -52,6 +52,52 @@ Motors:
 * RightDesired - Desired encoder position of right motor
 
 
+Command set from raspi to arduino:
+----------------------------------
+
+The command set from the raspi to the arduino is a different format than the status commands, and is instead formatted to be as easy as possible for the C++ arduino code to parse the command set.  Consequently, each command itself will be one letter, and all parameters will be separated by spaces.  This will be easiest to parse using the arduino codebases' "parseInt" "parseFloat", etc functions.
+
+Commands will be separated by newline characters.  The number of arguments and type of arguments will be dependent on the command.  Due to the limited support code available on the arduino, at this time error checking on the commands will be minimal.
+
+Commands:
+
+* R  - rotate to new magnetic heading
+** param 1 - heading in degrees, float
+
+* F - go forward until obstacle collision detected
+** no params
+
+* I - go idle
+
+New status from arduino to raspi:
+---------------------------------
+
+* Cmd - last command received from raspi, or "Idle" if no command received
+
+* Sts - current status of the last command, one of:
+** Exec - currently executing last command
+** Done - last command completed successfully
+** Error - last command could not be completed due to an error / exception condition
+
+* Err - reason for last error
+** Fault - a fault condition occurred (currently unused)
+** Ob - an obstacle was detected that prevents previous command from being executed
+** Fail - no fault was detected, but attempts to move failed.  may be due to low motor battery, undetectable obstruction, etc. 
+
+* Head - Current magnetic heading
+
+* Pos - Best estimate at absolute position based off available sensors and algorithms measured from power on position, listed as x and y coordinate in inches where x and y are separated by a comma
+
+Current sensor state.. will change over time as sensors are added.
+
+* IR1 - Infrared #1 distance sensor, distance in inches
+* IR2 - Infrared #2 distance sensor, distance in inches
+
+
+
+
+
+
 lessons learned
 ===============
 

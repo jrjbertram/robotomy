@@ -137,6 +137,8 @@ Robot robot = Robot( &lft, &rht, &accel, &mag, &gyro, &dof, &ir );
 MuxStream stream = MuxStream( &Serial, &Serial3 );
 
 elapsedMillis elapsed;
+long seqNum = 0;
+unsigned long timeMicros = 0;
 
 
 void setup()
@@ -328,8 +330,11 @@ void loop()
   
   robot.tick_occurred();
 
-  
-  if( elapsed > 500 )
+  unsigned long timeDiff;
+  unsigned long timeCurr = micros();
+  timeDiff = timeCurr - timeMicros;
+
+  if( timeDiff > 10000 )
   {
     // Need to convert these to a distance measurement at some point.  Right now just using raw analog input value.
     // Also eventually need these to gate any motor movement.  Should they cross below some threshold, I want them
@@ -379,6 +384,13 @@ void loop()
     
     String status;
     robot.getStatusString( status );
+    status += F(":SeqNum=");
+    status += seqNum;
+    status += F(":ElapsedUs=");
+    unsigned long timeDiff;
+    unsigned long timeCurr = micros();
+    timeDiff = timeCurr - timeMicros;
+    status += timeDiff;
     char status_array[ 1024 ];
     status.toCharArray( status_array, sizeof(status_array));
     //stream.print("status: " );
@@ -387,6 +399,9 @@ void loop()
 
 
     elapsed = 0;
+    seqNum++;        
+    timeMicros = timeCurr;
+
     
     robot.setMode( Robot::ROBOT_AUTO );
 

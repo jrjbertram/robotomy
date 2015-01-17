@@ -49,7 +49,7 @@ mywin = gui.get("mywin")
 # assign your event handlers:
 
 def parseMessage(msg):
-    print "parsing message: %s" % msg
+    print "parsing message: %s" % msg, # comma prevents newline
 
     if msg.startswith( "Mode=" ):
 	    params=dict(e.split('=') for e in msg.split(':'))
