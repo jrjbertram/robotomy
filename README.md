@@ -27,15 +27,15 @@ Status parameter descriptions:
 
 Controller state params:
 * Mode:
-** Auto - Fully autonomous, actively following current command from raspi.
-** Diag - In diagnostic mode... currently not actually used.
-** Idle - Arduino is idle, reporting status but not actively driving around. 
+    * Auto - Fully autonomous, actively following current command from raspi.
+    * Diag - In diagnostic mode... currently not actually used.
+    * Idle - Arduino is idle, reporting status but not actively driving around. 
 
 *Plan:
-** Reset - No plan currently loaded, not actively doing anything.
-** Init - Legacy: Plan in "init" mode, will seek to magnetic heading of zero, then switches to Wander.
-** Wander - Legacy: Drives around until sensors indiciate an obstacle collision.
-** Hit - Legacy: Rotates around until obstacle collision indication clears.  Once clear goes back to wander.
+    * Reset - No plan currently loaded, not actively doing anything.
+    * Init - Legacy: Plan in "init" mode, will seek to magnetic heading of zero, then switches to Wander.
+    * Wander - Legacy: Drives around until sensors indiciate an obstacle collision.
+    * Hit - Legacy: Rotates around until obstacle collision indication clears.  Once clear goes back to wander.
 
 Orientation params:
 * Roll - degrees, 0 is level (I think).. currently unused.
@@ -62,10 +62,10 @@ Commands will be separated by newline characters.  The number of arguments and t
 Commands:
 
 * R  - rotate to new magnetic heading
-** param 1 - heading in degrees, float
+    * param 1 - heading in degrees, float
 
 * F - go forward until obstacle collision detected
-** no params
+    * no params
 
 * I - go idle
 
@@ -75,14 +75,14 @@ New status from arduino to raspi:
 * Cmd - last command received from raspi, or "Idle" if no command received
 
 * Sts - current status of the last command, one of:
-** Exec - currently executing last command
-** Done - last command completed successfully
-** Error - last command could not be completed due to an error / exception condition
+    ** Exec - currently executing last command
+    ** Done - last command completed successfully
+    ** Error - last command could not be completed due to an error / exception condition
 
 * Err - reason for last error
-** Fault - a fault condition occurred (currently unused)
-** Ob - an obstacle was detected that prevents previous command from being executed
-** Fail - no fault was detected, but attempts to move failed.  may be due to low motor battery, undetectable obstruction, etc. 
+    ** Fault - a fault condition occurred (currently unused)
+    ** Ob - an obstacle was detected that prevents previous command from being executed
+    ** Fail - no fault was detected, but attempts to move failed.  may be due to low motor battery, undetectable obstruction, etc. 
 
 * Head - Current magnetic heading
 
