@@ -31,7 +31,7 @@ Controller state params:
     * Diag - In diagnostic mode... currently not actually used.
     * Idle - Arduino is idle, reporting status but not actively driving around. 
 
-*Plan:
+* Plan:
     * Reset - No plan currently loaded, not actively doing anything.
     * Init - Legacy: Plan in "init" mode, will seek to magnetic heading of zero, then switches to Wander.
     * Wander - Legacy: Drives around until sensors indiciate an obstacle collision.
